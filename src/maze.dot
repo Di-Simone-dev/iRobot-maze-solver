@@ -1,0 +1,15 @@
+digraph pastafarianism {
+ordering=out;
+graph [fontname="times-roman"];
+node [fontname="times-roman"];
+edge [fontname="times-roman"];
+"Explorer Unblocked" [label="Ⓜ Explorer Unblocked", shape=box, style=filled, fillcolor=orange, fontsize=9, fontcolor=black];
+"Exit or Choose" [label="Ⓜ Exit or Choose", shape=octagon, style=filled, fillcolor=cyan, fontsize=9, fontcolor=black];
+"Explorer Unblocked" -> "Exit or Choose";
+"Check Exit" [label="Check Exit", shape=ellipse, style=filled, fillcolor=gray, fontsize=9, fontcolor=black];
+"Exit or Choose" -> "Check Exit";
+"Choose Direction" [label="Choose Direction", shape=ellipse, style=filled, fillcolor=gray, fontsize=9, fontcolor=black];
+"Exit or Choose" -> "Choose Direction";
+"Move Forward" [label="Move Forward", shape=ellipse, style=filled, fillcolor=gray, fontsize=9, fontcolor=black];
+"Explorer Unblocked" -> "Move Forward";
+}
