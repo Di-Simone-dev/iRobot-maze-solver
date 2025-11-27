@@ -17,51 +17,128 @@ def save_bt_svg(root, filename="maze_solver_bt"):
     )
     print(f"SVG salvato come {filename}.svg")
 
+#L'inserimento di randomizzazione all'interno della generazione risulta ideale per:
+#Avere uno start non necessariamente al bordo del labirinto
+#Settare la stazione di docking allo spawn e far tornare il robot alla stazione per la ricarica
+#la generazione di maze (percorsi di dimensione 1) o di semplici mappe (implementazione attuale) con densità variabile
+#ma tenendo a mente di non tralasciare la raggiungibilità dell'obiettivo
+
+
+
 
 # ----------------------------
-# Config
+# Configurazioni
 # ----------------------------
-GRID_SIZE = 10
-CELL_SIZE = 40
-
+GRID_SIZE = 21  #Numero di celle nel lato della griglia quadrata (DISPARI)
+CELL_SIZE = 30  #Dimensione celle in PIXEL
+DENSITY = 0.20  #Densità di muri  [0,1] 
+#MAZE = True
+START = (1, 1)# RANDOMIZZABILE idealmente
+GOAL = (GRID_SIZE - 2, GRID_SIZE - 2)
 # ----------------------------
-# Blackboard
+# Blackboard (memoria condivisa tra i nodi)
 # ----------------------------
 BB = py_trees.blackboard.Blackboard()
-BB.set("pose", (0, 0))
-BB.set("goal", (GRID_SIZE - 1, GRID_SIZE - 1))
+BB.set("pose", START)   #SET POSIZIONE INIZIALE
+BB.set("goal", GOAL)     #SET OBIETTIVO
 BB.set("maze_walls", set())            # blocked cells {(r,c)}
-BB.set("heading", 90)                  # 0=N, 90=E, 180=S, 270=W
+BB.set("heading", 90)                  # 0=N, 90=E, 180=S, 270=W SET ORIENTAMENTO INIZIALE
 BB.set("reached_exit", False)
 BB.set("last_action", "Idle")
-BB.set("visited", {(0, 0)})            # visited cells set
+BB.set("visited", {START})            # visited cells set  (Visita dello start)
 BB.set("allow_visit_fallback", False)  # allows moving into visited if no unvisited options exist
 
+#SCELTA ALGORITMO (HARDCODATA PER ORA)
+BB.set("algorithm_mode", "pledge")
+BB.set("pledge_counter", 0)
+BB.set("heading_global", 180)   # o la direzione che vuoi come riferimento
+
 # ----------------------------
-# Maze generation
+# Maze generation, chiamato al init e al reset, ha densità parametrica
 # ----------------------------
-def generate_walls(density=0.22):
-    start = (0, 0)
-    goal = (GRID_SIZE - 1, GRID_SIZE - 1)
-    walls = set()
-    for r in range(GRID_SIZE):
-        for c in range(GRID_SIZE):
-            if (r, c) in [start, goal]:
-                continue
-            if random.random() < density:
-                walls.add((r, c))
-    BB.set("maze_walls", walls)
+def generate_walls(density=DENSITY):
+    reachable = False
+    while(not reachable):#piccolo trucchetto per ottenere un maze risolvibile dal robot
+        start = START
+        goal = (GRID_SIZE - 2, GRID_SIZE - 2)#hardcodato ma randomizzabile
+
+        # Tutte le celle inizialmente muri
+        walls = {(r, c) for r in range(GRID_SIZE) for c in range(GRID_SIZE)}
+        walls.remove(start)
+        walls.remove(goal)
+
+        visited = set()
+        stack = [start]
+
+        # Direzioni (N, S, E, W)
+        directions = [(-1, 0), (1, 0), (0, 1), (0, -1)]
+
+        while stack:
+            current = stack[-1]
+            visited.add(current)
+
+            # Trova vicini non visitati a distanza 2 (per mantenere corridoi larghi 1)
+            neighbors = []
+            for dr, dc in directions:
+                nr, nc = current[0] + 2*dr, current[1] + 2*dc
+                if 0 <= nr < GRID_SIZE and 0 <= nc < GRID_SIZE   and (nr, nc) not in visited:
+                    neighbors.append((nr, nc))
+
+            if neighbors:
+                next_cell = random.choice(neighbors)
+                # Rimuovi il muro tra current e next_cell
+                wall = (current[0] + (next_cell[0] - current[0]) // 2,
+                        current[1] + (next_cell[1] - current[1]) // 2)
+                if wall in walls:
+                    walls.remove(wall)
+                if next_cell in walls:
+                    walls.remove(next_cell)
+                stack.append(next_cell)
+            else:
+                stack.pop()
+
+        BB.set("maze_walls", walls)
+        #print(walls)
+        #reachable = True
+        reachable = is_reachable(START,GOAL,walls)
+        #print(reachable)
+
+#Con questo sono sicuro che il maze sia risolvibile
+def is_reachable(start, goal, walls):
+    from collections import deque
+    q = deque([start])
+    visited = {start}
+    directions = [(1,0),(-1,0),(0,1),(0,-1)]
+    while q:
+        r,c = q.popleft()
+        if (r,c) == goal:
+            return True
+        for dr,dc in directions:
+            nr,nc = r+dr, c+dc
+            if 0 <= nr < GRID_SIZE and 0 <= nc < GRID_SIZE:
+                if (nr,nc) not in walls and (nr,nc) not in visited:
+                    visited.add((nr,nc))
+                    q.append((nr,nc))
+    return False
 
 # ----------------------------
 # Helpers
 # ----------------------------
-def forward_cell(pose, heading):
+def forward_cell(pose, heading):  #movimento direzionale in base a posizione e orientamento
     r, c = pose
     if heading == 0:     return (r - 1, c)
     if heading == 90:    return (r, c + 1)
     if heading == 180:   return (r + 1, c)
     if heading == 270:   return (r, c - 1)
     return pose
+
+def left_cell(pose, heading):
+    return forward_cell(pose, (heading - 90) % 360)
+
+def right_cell(pose, heading):
+    return forward_cell(pose, (heading + 90) % 360)
+
+
 
 def in_bounds(cell):
     r, c = cell
@@ -85,7 +162,7 @@ def neighbor_cells_with_headings(pose, heading):
 # ----------------------------
 # Behaviours
 # ----------------------------
-class CheckExit(py_trees.behaviour.Behaviour):
+class CheckExit(py_trees.behaviour.Behaviour):#Si controlla di essere arrivati all'uscita
     def __init__(self, name="Check Exit"):
         super().__init__(name)
 
@@ -177,7 +254,7 @@ class MoveForward(py_trees.behaviour.Behaviour):
 # ----------------------------
 # Build behaviour tree (reactive, unblocked)
 # ----------------------------
-def build_tree():
+""" def build_tree():   
     # Sequence ensures we always choose heading before moving
     root = py_trees.composites.Sequence("Explorer Unblocked", memory=True)
     root.add_children([
@@ -187,7 +264,176 @@ def build_tree():
         ]),
         MoveForward("Move Forward"),
     ])
+    return root """
+
+def PledgeSubTree(name="Pledge"):
+    return py_trees.composites.Sequence(name, memory=True, children=[
+        UpdateDeviationCounter("Update Counter"),
+        py_trees.composites.Selector("Aligned or Follow", memory=True, children=[
+            py_trees.composites.Sequence("Aligned Straight", memory=True, children=[
+                AlignedWithGlobal("Check Alignment"),
+                ChooseStraightIfFree("Choose Straight"),
+            ]),
+            FollowWall("Follow Wall"),
+        ]),
+        MoveForward("Move Forward"),
+    ])
+
+
+
+#STEP 1 DEL PLEDGE
+class UpdateDeviationCounter(py_trees.behaviour.Behaviour):
+    def __init__(self, name="Update Counter"):
+        super().__init__(name)
+
+    def update(self):
+        counter = BB.get("pledge_counter") if BB.exists("pledge_counter") else 0
+        last_action = BB.get("last_action") if BB.exists("last_action") else ""
+
+        if "Turn Left" in last_action: counter += 1
+        elif "Turn Right" in last_action: counter -= 1
+
+        BB.set("pledge_counter", counter)
+        # don't overwrite last_action used by other nodes
+        BB.set("pledge_counter_log", f"Pledge counter: {counter}")
+        return py_trees.common.Status.SUCCESS
+
+#STEP 2 DEL PLEDGE
+class AlignedWithGlobal(py_trees.behaviour.Behaviour):
+    def __init__(self, name="Check Alignment"):
+        super().__init__(name)
+
+    def update(self):
+        return (py_trees.common.Status.SUCCESS
+                if BB.get("pledge_counter") == 0 and BB.get("heading") == BB.get("heading_global")
+                else py_trees.common.Status.FAILURE)
+    
+
+class ChooseStraightIfFree(py_trees.behaviour.Behaviour):
+    def __init__(self, name="Choose Straight"):
+        super().__init__(name)
+
+    def update(self):
+        pose = BB.get("pose")
+        heading = BB.get("heading_global")  # force global heading when aligned
+        target = forward_cell(pose, heading)
+        if is_free(target):
+            BB.set("heading", heading)
+            BB.set("allow_visit_fallback", False)
+            BB.set("last_action", f"Straight on global heading → {target}")
+            return py_trees.common.Status.SUCCESS
+        return py_trees.common.Status.FAILURE
+
+
+class FollowWall(py_trees.behaviour.Behaviour):
+    def __init__(self, name="Follow Wall"):
+        super().__init__(name)
+
+    def update(self):
+        pose = BB.get("pose")
+        heading = BB.get("heading")
+        global_heading = BB.get("heading_global")
+        counter = BB.get("pledge_counter")
+
+        forward = forward_cell(pose, heading)
+        left = left_cell(pose, heading)
+        right = right_cell(pose, heading)
+
+        # Priority: Left if blocked, Right if wall-follow, else forward or global
+
+        #DA DEBUGGARE
+        if not is_free(forward):
+            BB.set("heading", (heading - 90) % 360)
+            BB.set("last_action", "Turn Left (wall ahead)")
+            
+        elif is_free(right):
+            BB.set("heading", (heading + 90) % 360)
+            BB.set("last_action", "Turn Right (wall follow)")
+        elif is_free(forward):
+            BB.set("heading", heading)
+            BB.set("last_action", "Continue forward")
+        elif counter == 0:
+            BB.set("heading", global_heading)
+            BB.set("last_action", "Wall ended → resume global heading")
+        else:
+            BB.set("last_action", "Wall ended → no free path")
+            return py_trees.common.Status.FAILURE
+
+        return py_trees.common.Status.SUCCESS
+
+#STEP 3 DEL PLEDGE        
+class CorrectHeading(py_trees.behaviour.Behaviour):
+    def __init__(self, name="Correct Heading"):
+        super().__init__(name)
+
+    def update(self):
+        counter = BB.get("pledge_counter")
+        heading = BB.get("heading")
+        global_heading = BB.get("heading_global")
+
+        if counter == 0 and heading == global_heading:
+            BB.set("last_action", "Corrected heading → resume straight")
+            return py_trees.common.Status.SUCCESS
+
+        BB.set("last_action", "Still correcting deviation")
+        return py_trees.common.Status.FAILURE
+    
+def TremauxSubTree(name="Trémaux"):
+    return py_trees.composites.Sequence(name, memory=True, children=[
+        #METODI DA IMPLEMENTARE 
+        #ChooseUnvisitedPath("Choose Path"),
+        #MarkPath("Mark Path"),
+        #MoveForward("Move Forward"),
+        #BacktrackIfDeadEnd("Backtrack")
+
+        #COMPORTAMENTO DI DEFAULT
+        py_trees.composites.Selector("Exit or Choose", memory=True, children=[
+            CheckExit("Check Exit"),
+            ChooseDirection("Choose Direction")
+        ]),
+        MoveForward("Move Forward"),
+    ])
+
+def build_tree():
+    root = py_trees.composites.Sequence("Maze Solver", memory=True)
+
+    pledge_subtree = PledgeSubTree("Pledge Algorithm")
+    tremaux_subtree = TremauxSubTree("Trémaux Algorithm")
+
+    choose_algorithm = py_trees.composites.Selector("Choose Algorithm", memory=True, children=[
+        py_trees.composites.Sequence("Pledge Branch", memory=True, children=[
+            AlgorithmSelector("Is Pledge", "pledge"),
+            PledgeSubTree("Pledge Algorithm")
+        ]),
+        py_trees.composites.Sequence("Tremaux Branch", memory=True, children=[
+            AlgorithmSelector("Is Tremaux", "tremaux"),
+            TremauxSubTree("Tremaux Algorithm")
+        ])
+    ])
+
+
+
+    root.add_children([
+        py_trees.composites.Selector("Exit or Explore", memory=True, children=[
+            CheckExit("Check Exit"),
+            choose_algorithm
+        ])
+    ])
+
     return root
+
+class AlgorithmSelector(py_trees.behaviour.Behaviour):
+    def __init__(self, name, mode):
+        super().__init__(name)
+        self.mode = mode
+
+    def update(self):
+        bb = py_trees.blackboard.Blackboard()
+        if bb.get("algorithm_mode") == self.mode:
+            return py_trees.common.Status.SUCCESS
+        else:
+            return py_trees.common.Status.FAILURE
+
 
 # ----------------------------
 # Export BT SVG (NEW)
@@ -213,7 +459,7 @@ class MazeGUI:
         self.tree = py_trees.trees.BehaviourTree(root_node)
         self.root_node = root_node  # keep a reference for SVG export
         self.win = tk.Tk()
-        self.win.title("Exploration Maze Solver GUI 10x10 (Unvisited Priority + Unblock)")
+        self.win.title("Maze solver simulator GUI")
 
         self.canvas = tk.Canvas(self.win, width=GRID_SIZE*CELL_SIZE, height=GRID_SIZE*CELL_SIZE)
         self.canvas.pack(padx=10, pady=10)
@@ -223,7 +469,8 @@ class MazeGUI:
         tk.Button(ctrl, text="Start", command=self.start).pack(side=tk.LEFT, padx=4)
         tk.Button(ctrl, text="Step", command=self.step).pack(side=tk.LEFT, padx=4)
         tk.Button(ctrl, text="Reset Maze", command=self.reset_maze).pack(side=tk.LEFT, padx=4)
-        tk.Button(ctrl, text="Save BT SVG", command=self.save_svg).pack(side=tk.LEFT, padx=4)  # NEW: button
+        tk.Button(ctrl, text="Stop", command=self.stop).pack(side=tk.LEFT, padx=4)
+        #tk.Button(ctrl, text="Save BT SVG", command=self.save_svg).pack(side=tk.LEFT, padx=4)  # NEW: button
 
         self.status = tk.StringVar()
         tk.Label(self.win, textvariable=self.status).pack(fill=tk.X, padx=10, pady=4)
@@ -231,13 +478,13 @@ class MazeGUI:
         self.log = tk.StringVar()
         tk.Label(self.win, textvariable=self.log, fg="blue").pack(fill=tk.X, padx=10, pady=4)
 
-        generate_walls(density=0.22)
+        generate_walls(density=DENSITY)
         self.running = False
 
         self.draw_maze()
         self.update_status()
 
-        self.win.after(200, self.loop)
+        self.win.after(200, self.loop)   #AGGIORNAMENTO OGNI 200ms (5 FPS)
 
     def draw_maze(self):
         self.canvas.delete("all")
@@ -288,20 +535,20 @@ class MazeGUI:
     def start(self):
         self.running = True
 
-    def step(self):
+    def step(self):   #Lo step aumenta di 1 tick e aggiunta la schermata e lo status
         self.tree.tick()
         self.draw_maze()
         self.update_status()
 
     def reset_maze(self):
-        BB.set("pose", (0, 0))
-        BB.set("goal", (GRID_SIZE - 1, GRID_SIZE - 1))
+        BB.set("pose", START)
+        BB.set("goal", GOAL)
         BB.set("heading", 90)
         BB.set("reached_exit", False)
         BB.set("last_action", "Maze reset")
-        BB.set("visited", {(0, 0)})
+        BB.set("visited", {START})
         BB.set("allow_visit_fallback", False)
-        generate_walls(density=0.22)
+        generate_walls(density=DENSITY)  #Con il config
         self.draw_maze()
         self.update_status()
         self.running = False
@@ -312,12 +559,19 @@ class MazeGUI:
 
     def loop(self):
         if self.running and not BB.get("reached_exit"):
+
+            #Questi 3 equivalgono allo step
             self.tree.tick()
             self.draw_maze()
             self.update_status()
-            if BB.get("reached_exit"):
+
+
+            if BB.get("reached_exit"):#STOP SOLO SE RAGGIUNGE L'USCITA
                 self.running = False
         self.win.after(200, self.loop)
+
+    def stop(self):
+        self.running = False
 
     def run(self):
         self.win.mainloop()
