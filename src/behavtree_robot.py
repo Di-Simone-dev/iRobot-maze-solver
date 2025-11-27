@@ -345,7 +345,9 @@ if __name__ == "__main__":
     root = build_tree()
     tree = py_trees.trees.BehaviourTree(root)
     #save_bt_svg(root, filename="maze_solver_bt")
-    py_trees.display.render_dot_tree(root, name="maze")
+    
+    #per la produzione delle immagini
+    #py_trees.display.render_dot_tree(root, name="maze")
 
 
     gui = MazeGUI(root)
