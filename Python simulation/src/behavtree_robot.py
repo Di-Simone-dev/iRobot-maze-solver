@@ -15,7 +15,7 @@ def save_bt_svg(root, filename="maze_solver_bt"):
         target_directory=".",  # cartella corrente
         format="svg"     # formato di output
     )
-    print(f"SVG salvato come {filename}.svg")
+    #print(f"SVG salvato come {filename}.svg")
 
 #L'inserimento di randomizzazione all'interno della generazione risulta ideale per:
 #Avere uno start non necessariamente al bordo del labirinto
@@ -23,15 +23,14 @@ def save_bt_svg(root, filename="maze_solver_bt"):
 #la generazione di maze (percorsi di dimensione 1) o di semplici mappe (implementazione attuale) con densità variabile
 #ma tenendo a mente di non tralasciare la raggiungibilità dell'obiettivo
 
-
-
-
 # ----------------------------
 # Configurazioni
 # ----------------------------
-GRID_SIZE = 21  #Numero di celle nel lato della griglia quadrata (DISPARI)
-CELL_SIZE = 30  #Dimensione celle in PIXEL
-DENSITY = 0.20  #Densità di muri  [0,1] 
+GRID_SIZE = 41  #Numero di celle nel lato della griglia quadrata (DISPARI)
+CELL_SIZE = 15  #Dimensione celle in PIXEL
+UPDATE_PERIOD = 100 #refresh ogni 100ms
+
+DENSITY = 0.20  #Densità di muri  [0,1] (NON USATA AL MOMENTO)
 #MAZE = True
 START = (1, 1)# RANDOMIZZABILE idealmente
 GOAL = (GRID_SIZE - 2, GRID_SIZE - 2)
@@ -51,7 +50,7 @@ BB.set("allow_visit_fallback", False)  # allows moving into visited if no unvisi
 #SCELTA ALGORITMO (HARDCODATA PER ORA)
 BB.set("algorithm_mode", "pledge")
 BB.set("pledge_counter", 0)
-BB.set("heading_global", 180)   # o la direzione che vuoi come riferimento
+BB.set("heading_global", BB.get("heading")) #la direzione che vuoi come riferimento, Pledge la richiede per il "tracking dei giri"
 
 # ----------------------------
 # Maze generation, chiamato al init e al reset, ha densità parametrica
@@ -98,10 +97,10 @@ def generate_walls(density=DENSITY):
                 stack.pop()
 
         BB.set("maze_walls", walls)
-        #print(walls)
+        ##print(walls)
         #reachable = True
         reachable = is_reachable(START,GOAL,walls)
-        #print(reachable)
+        ##print(reachable)
 
 #Con questo sono sicuro che il maze sia risolvibile
 def is_reachable(start, goal, walls):
@@ -195,13 +194,7 @@ class CheckExit(py_trees.behaviour.Behaviour):#Si controlla di essere arrivati a
         return py_trees.common.Status.FAILURE
 
 class ChooseDirection(py_trees.behaviour.Behaviour):
-    """
-    Strict priority for unvisited:
-    1) Pick heading toward a free & unvisited neighbor (order: F, L, R, B).
-    2) If none exist, enable allow_visit_fallback and pick any free neighbor (order: F, L, R, B).
-    3) If none free, fail.
-    Only sets heading; movement happens in MoveForward.
-    """
+
     def __init__(self, name="Choose Direction"):
         super().__init__(name)
 
@@ -245,6 +238,7 @@ class MoveForward(py_trees.behaviour.Behaviour):
         if BB.get("reached_exit"):
             return py_trees.common.Status.SUCCESS
 
+        #print("MOVIMENTO")
         pose = BB.get("pose")
         heading = BB.get("heading")
         target = forward_cell(pose, heading)
@@ -263,7 +257,7 @@ class MoveForward(py_trees.behaviour.Behaviour):
         BB.set("allow_visit_fallback", False)  # reset after movement
         # If target visited and no fallback allowed, fail to re-choose direction
         """ if (target in visited) and not allow_visit_fallback:
-            print("visita riuscita")
+            #print("visita riuscita")
             BB.set("last_action", f"Forward visited {target} → reselect direction")
             return py_trees.common.Status.FAILURE """
 
@@ -281,31 +275,42 @@ class MoveForward(py_trees.behaviour.Behaviour):
 # ----------------------------
 # Build behaviour tree (reactive, unblocked)
 # ----------------------------
-""" def build_tree():   
-    # Sequence ensures we always choose heading before moving
-    root = py_trees.composites.Sequence("Explorer Unblocked", memory=True)
-    root.add_children([
-        py_trees.composites.Selector("Exit or Choose", memory=True, children=[
-            CheckExit("Check Exit"),
-            ChooseDirection("Choose Direction")
-        ]),
-        MoveForward("Move Forward"),
-    ])
-    return root """
 
+#in questo sono mutualmente esclusive
 def PledgeSubTree(name="Pledge"):
-    return py_trees.composites.Sequence(name, memory=True, children=[
-        UpdateDeviationCounter("Update Counter"),
-        py_trees.composites.Selector("Aligned or Follow", memory=True, children=[
-            py_trees.composites.Sequence("Aligned Straight", memory=True, children=[
-                AlignedWithGlobal("Check Alignment"),
-                ChooseStraightIfFree("Choose Straight"),
-            ]),
-            FollowWall("Follow Wall"),
-        ]),
-        MoveForward("Move Forward"),
-    ])
-
+    return py_trees.composites.Sequence(
+        name, memory=True, children=[
+            UpdateDeviationCounter("Update Counter"),
+            py_trees.composites.Selector(
+                "Aligned or Follow", memory=True, children=[
+                    #questo è SUCCESSFULL solo se si procede nella direzione iniziale del pledge
+                    py_trees.composites.Sequence(
+                        "Aligned Straight", memory=True, children=[
+                            AlignedWithGlobal("Check Alignment"),
+                            #probabilmente il choose straight if free è inutile dovrei andare dritto solo se c=0
+                            #quindi se aligned with global da successo
+                            #ChooseStraightIfFree("Choose Straight"),
+                            MoveForward("Move Forward"),
+                        ]
+                    ),
+                    #Se il primo caso non è soddisfatto posso comunque muovermi in una direzione basandomi sul pledge
+                    #counter
+                    # Qui mettiamo il blocco esclusivo, se non posso muovere il robot lo giro UNO o l'ALTRO
+                    #caso 1: posso andare dritto anche se non è la direzione del pledge
+                    #caso 2: devo ruotare
+                    #attualmente followwall viene eseguito solo se move forward fallisce
+                    py_trees.composites.Sequence(
+                        "Follow OR Move", memory=True, children=[
+                            
+                            FollowWall("Follow Wall"), #aggiungo dei #print per evidenziare le scelte
+                            MoveForward("Move Forward"), 
+                            
+                        ]
+                    ),
+                ]
+            )
+        ]
+    )
 
 
 #STEP 1 DEL PLEDGE
@@ -314,13 +319,19 @@ class UpdateDeviationCounter(py_trees.behaviour.Behaviour):
         super().__init__(name)
 
     def update(self):
+        #print("")
         counter = BB.get("pledge_counter") if BB.exists("pledge_counter") else 0
         last_action = BB.get("last_action") if BB.exists("last_action") else ""
-
-        if "Turn Left" in last_action: counter += 1
-        elif "Turn Right" in last_action: counter -= 1
-
+        #print("Pledge counter attuale", BB.get("pledge_counter"),last_action)
+        if "Turn Left" in last_action: counter -= 1     #li ho invertiti dx => + , sx => - 
+        elif "Turn Right" in last_action: counter += 1
+        elif "Turn Back (2 times left)" in last_action: counter -= 2
+        elif "Turn Back (2 times right)" in last_action: counter += 2
+        
+         
         BB.set("pledge_counter", counter)
+        #print("Pledge counter aggiornato", BB.get("pledge_counter"),last_action)
+
         # don't overwrite last_action used by other nodes
         BB.set("pledge_counter_log", f"Pledge counter: {counter}")
         return py_trees.common.Status.SUCCESS
@@ -332,9 +343,12 @@ class AlignedWithGlobal(py_trees.behaviour.Behaviour):
         super().__init__(name)
 
     def update(self):
-        return (py_trees.common.Status.SUCCESS
-                if BB.get("pledge_counter") == 0 and BB.get("heading") == BB.get("heading_global")
-                else py_trees.common.Status.FAILURE)
+        if BB.get("pledge_counter") == 0 and BB.get("heading") == BB.get("heading_global"):
+            #print("HEADING CORRETTO", BB.get("pledge_counter"))
+            return py_trees.common.Status.SUCCESS
+        else:
+            #print("HEADING NON CORRETTO" , BB.get("pledge_counter"))
+            return py_trees.common.Status.FAILURE
     
 
 class ChooseStraightIfFree(py_trees.behaviour.Behaviour):
@@ -346,7 +360,7 @@ class ChooseStraightIfFree(py_trees.behaviour.Behaviour):
         heading = BB.get("heading_global")  # force global heading when aligned
         
         target = forward_cell(pose, heading)
-        print(pose,target)
+        #print(pose,target)
         if is_free(target):
             BB.set("heading", heading)
             BB.set("allow_visit_fallback", False)
@@ -379,46 +393,80 @@ class FollowWall(py_trees.behaviour.Behaviour):
         #basterebbe gestire i casi di muro da seguire a dx, muro da seguire a sx e tornare indietro in caso contrario
         #MA NON DEVO SCEGLIERE DI SEGUIRE MURI "GIà VISITATI"
         # and not (right in visited)  and not (left in visited)
-        if is_free(right) and not is_free(backright):
-            BB.set("heading", (heading + 90) % 360)
-            BB.set("last_action", "Turn Right (wall follow)")
-            print("RIGHT111 seguo il muro a destra" )
-        elif is_free(forward):
-            BB.set("heading", heading)
-            BB.set("last_action", "Continue forward")
-            print("VADO DRITTO")
-        elif is_free(left) and not is_free(backleft):
-            BB.set("heading", (heading - 90) % 360)
-            BB.set("last_action", "Turn Right (wall follow)")
-            print("LEFT111 seguo il muro a sinistra" )
+        #print("DIREAZIONE NON ALLINEATA")
 
-        elif is_free(back):# non dovrebbe servire questo controllo
-            BB.set("heading", (heading - 180) % 360)
-            BB.set("last_action", "Going back")
-            print("TORNO INDIETRO")
+        if(is_free(left) and is_free(right) and is_free(back) and "Turn" not in BB.get("last_action")):
+            print("Scelta tra sx e dx con il seguente pledge counter", counter)
+            print(left, right)
+        if(is_free(left) and is_free(forward) and is_free(back) and "Turn" not in BB.get("last_action")):
+            print("Scelta tra sx e dritto con il seguente pledge counter", counter)
+            print(left,forward)
+        if(is_free(right) and is_free(forward)and is_free(back) and "Turn" not in BB.get("last_action")):
+            print("Scelta tra dx e dritto con il seguente pledge counter", counter)
+            print(right, forward)
+        #implemento il controllo sul pledge counter 
+        #>0 prioritizzo il turn left, mentre <0 prioritizzo il turn right
+        change_heading = True
+        if BB.get("pledge_counter")>0:
+            #print("priorittizo la sinistra")
+            #controlli aggiuntivi necessari, se ha appena girato a sinistra senza muoversi non deve rifarlo
+            if is_free(left) and not is_free(backleft) and "Turn Left" not in BB.get("last_action"):
+                BB.set("heading", (heading - 90) % 360)
+                BB.set("last_action", "Turn Left (wall follow)")
+                #print("LEFT111 seguo il muro a sinistra" )
+            #ALTRIMENTI DESTRA E POI CENTRO
+            elif is_free(forward):
+                BB.set("heading", heading)
+                BB.set("last_action", "Continue forward")
+                change_heading = False
+                #print("VADO DRITTO")
+            elif is_free(right) and not is_free(backright):
+                BB.set("heading", (heading + 90) % 360)
+                BB.set("last_action", "Turn Right (wall follow)")
+                #print("RIGHT111 seguo il muro a destra" )
+
+            elif is_free(back):# QUI DEVO CAPIRE come gestire il pledgecounter ipotizzo di girare a sx 2 volte
+                #POSSO FARLO ANCHE IN 2 STEP (PROBABILMENTE PIù ADATTO)
+                BB.set("heading", (heading - 180) % 360)
+                BB.set("last_action", "Turn Back (2 times right)")
+                #print("TORNO INDIETRO")
+            else:
+                BB.set("last_action", "Wall ended → no free path")
+                #print("FAIL")
+                return py_trees.common.Status.FAILURE
+
+
+        #Qui invece prioritizzo la destra        
+        elif BB.get("pledge_counter")<=0:
+            #print("priorittizo la destra")
+            #LE SVOLTE VANNO FATTE 1 SOLA VOLTA DI FILA 
+            if is_free(right) and not is_free(backright) and "Turn Right" not in BB.get("last_action"):
+                BB.set("heading", (heading + 90) % 360)
+                BB.set("last_action", "Turn Right (wall follow)")
+                #print("RIGHT111 seguo il muro a destra" )
+            elif is_free(forward):
+                BB.set("heading", heading)
+                BB.set("last_action", "Continue forward")
+                change_heading = False
+                #print("VADO DRITTO")
+            elif is_free(left) and not is_free(backleft):
+                BB.set("heading", (heading - 90) % 360)
+                BB.set("last_action", "Turn Left (wall follow)")
+                #print("LEFT111 seguo il muro a sinistra" )
+
+            elif is_free(back):# non dovrebbe servire questo controllo
+                BB.set("heading", (heading - 180) % 360)
+                BB.set("last_action", "Turn Back (2 times left)")
+                #print("TORNO INDIETRO")
+            else:
+                BB.set("last_action", "Wall ended → no free path")
+                #print("FAIL")
+                return py_trees.common.Status.FAILURE
+
+        if(change_heading == False):
+            return py_trees.common.Status.SUCCESS   #se non giro mi muovo procedendo con il moveforward
         else:
-            BB.set("last_action", "Wall ended → no free path")
-            print("FAIL")
-            return py_trees.common.Status.FAILURE
-
-        return py_trees.common.Status.SUCCESS
-
-""" #STEP 3 DEL PLEDGE        
-class CorrectHeading(py_trees.behaviour.Behaviour):
-    def __init__(self, name="Correct Heading"):
-        super().__init__(name)
-
-    def update(self):
-        counter = BB.get("pledge_counter")
-        heading = BB.get("heading")
-        global_heading = BB.get("heading_global")
-
-        if counter == 0 and heading == global_heading:
-            BB.set("last_action", "Corrected heading → resume straight")
-            return py_trees.common.Status.SUCCESS
-
-        BB.set("last_action", "Still correcting deviation")
-        return py_trees.common.Status.FAILURE """
+            return py_trees.common.Status.FAILURE   #altrimenti resto fermo
     
 def TremauxSubTree(name="Trémaux"):
     return py_trees.composites.Sequence(name, memory=True, children=[
@@ -438,9 +486,6 @@ def TremauxSubTree(name="Trémaux"):
 
 def build_tree():
     root = py_trees.composites.Sequence("Maze Solver", memory=True)
-
-    pledge_subtree = PledgeSubTree("Pledge Algorithm")
-    tremaux_subtree = TremauxSubTree("Trémaux Algorithm")
 
     choose_algorithm = py_trees.composites.Selector("Choose Algorithm", memory=True, children=[
         py_trees.composites.Sequence("Pledge Branch", memory=True, children=[
@@ -491,7 +536,7 @@ def save_bt_svg(root, filename="maze_solver_bt.svg"):
         collapse_decorators=False
     )
     graph.write(filename, format="svg")
-    print(f"Saved behaviour tree SVG to: {filename}")
+    #print(f"Saved behaviour tree SVG to: {filename}")
 
 # ----------------------------
 # GUI
@@ -509,9 +554,12 @@ class MazeGUI:
         ctrl = tk.Frame(self.win)
         ctrl.pack(pady=6)
         tk.Button(ctrl, text="Start", command=self.start).pack(side=tk.LEFT, padx=4)
+        tk.Button(ctrl, text="Stop", command=self.stop).pack(side=tk.LEFT, padx=4)
         tk.Button(ctrl, text="Step", command=self.step).pack(side=tk.LEFT, padx=4)
         tk.Button(ctrl, text="Reset Maze", command=self.reset_maze).pack(side=tk.LEFT, padx=4)
-        tk.Button(ctrl, text="Stop", command=self.stop).pack(side=tk.LEFT, padx=4)
+        tk.Button(ctrl, text="New Maze", command=self.new_maze).pack(side=tk.LEFT, padx=4)
+        
+        
         #tk.Button(ctrl, text="Save BT SVG", command=self.save_svg).pack(side=tk.LEFT, padx=4)  # NEW: button
 
         self.status = tk.StringVar()
@@ -526,7 +574,7 @@ class MazeGUI:
         self.draw_maze()
         self.update_status()
 
-        self.win.after(200, self.loop)   #AGGIORNAMENTO OGNI 200ms (5 FPS)
+        self.win.after(UPDATE_PERIOD, self.loop)   #AGGIORNAMENTO OGNI 100ms (10 FPS)
 
     def draw_maze(self):
         self.canvas.delete("all")
@@ -582,6 +630,27 @@ class MazeGUI:
         self.draw_maze()
         self.update_status()
 
+    def new_maze(self):
+        BB.set("pose", START)
+        BB.set("goal", GOAL)
+        BB.set("heading", 90)
+        BB.set("reached_exit", False)
+        BB.set("last_action", "New Maze")
+        BB.set("visited", {START})
+        BB.set("allow_visit_fallback", False)
+        BB.set("pledge_counter", 0)
+        #print("RESET")
+        #print("")
+        #print("")
+        #print("")
+        #print("")
+        #print("")
+        #print("")
+        generate_walls(density=DENSITY)  #Con il config
+        self.draw_maze()
+        self.update_status()
+        self.running = False
+
     def reset_maze(self):
         BB.set("pose", START)
         BB.set("goal", GOAL)
@@ -590,7 +659,14 @@ class MazeGUI:
         BB.set("last_action", "Maze reset")
         BB.set("visited", {START})
         BB.set("allow_visit_fallback", False)
-        generate_walls(density=DENSITY)  #Con il config
+        BB.set("pledge_counter", 0)
+        #print("RESET")
+        #print("")
+        #print("")
+        #print("")
+        #print("")
+        #print("")
+        #print("")
         self.draw_maze()
         self.update_status()
         self.running = False
@@ -610,7 +686,7 @@ class MazeGUI:
 
             if BB.get("reached_exit"):#STOP SOLO SE RAGGIUNGE L'USCITA
                 self.running = False
-        self.win.after(200, self.loop)
+        self.win.after(100, self.loop)
 
     def stop(self):
         self.running = False
@@ -630,7 +706,7 @@ def save_bt_svg(root, filename="maze_solver_bt.svg"):
         collapse_decorators=False
     )
     graph.write(filename, format="svg")
-    print(f"Saved behaviour tree SVG to: {filename}")
+    #print(f"Saved behaviour tree SVG to: {filename}")
 
 # ----------------------------
 
@@ -649,23 +725,3 @@ if __name__ == "__main__":
     gui = MazeGUI(root)
     gui.run()
 
-
-
-
-
-    """ elif not is_free(forward):
-            BB.set("heading", (heading - 90) % 360)
-            BB.set("last_action", "Turn Left (wall ahead)")
-            print("LEFT1 non seguo il muro")
-        elif is_free(right):
-            BB.set("heading", (heading + 90) % 360)
-            BB.set("last_action", "Turn Right (wall follow)")
-            print("RIGHT1 seguo il muro" )
-        elif is_free(forward):
-            BB.set("heading", heading)
-            BB.set("last_action", "Continue forward")
-            print("VADO DRITTO" )
-        elif counter == 0:
-            BB.set("heading", global_heading)
-            BB.set("last_action", "Wall ended → resume global heading")
-            print("Muro terminato, riprendo orientamento globale" )"""
