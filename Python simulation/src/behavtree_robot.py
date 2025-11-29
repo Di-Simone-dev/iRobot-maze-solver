@@ -124,7 +124,14 @@ def is_reachable(start, goal, walls):
 # ----------------------------
 # Helpers
 # ----------------------------
-def forward_cell(pose, heading):  #movimento direzionale in base a posizione e orientamento
+
+def left_cell(pose, heading):
+    return forward_cell(pose, (heading - 90) % 360)
+
+def right_cell(pose, heading):
+    return forward_cell(pose, (heading + 90) % 360)
+
+def forward_cell(pose, heading):  #VISUALIZZAZIONE CELLA IN BASE A POSIZIONE E ORIENTAMENTO
     r, c = pose
     if heading == 0:     return (r - 1, c)
     if heading == 90:    return (r, c + 1)
@@ -132,11 +139,25 @@ def forward_cell(pose, heading):  #movimento direzionale in base a posizione e o
     if heading == 270:   return (r, c - 1)
     return pose
 
-def left_cell(pose, heading):
-    return forward_cell(pose, (heading - 90) % 360)
+def leftforward_cell(pose, heading):
+    fwd = forward_cell(pose, heading)
+    return left_cell(fwd, heading)
 
-def right_cell(pose, heading):
-    return forward_cell(pose, (heading + 90) % 360)
+def rightforward_cell(pose, heading):
+    fwd = forward_cell(pose, heading)
+    return right_cell(fwd, heading)
+
+#POSTERIORI
+def backward_cell(pose, heading):
+    return forward_cell(pose, (heading + 180) % 360)
+
+def backleft_cell(pose, heading):
+    back = backward_cell(pose, heading)
+    return left_cell(back, heading)
+
+def backright_cell(pose, heading):
+    back = backward_cell(pose, heading)
+    return right_cell(back, heading)
 
 
 
@@ -228,20 +249,26 @@ class MoveForward(py_trees.behaviour.Behaviour):
         heading = BB.get("heading")
         target = forward_cell(pose, heading)
 
+
         if not is_free(target):
             BB.set("last_action", f"Blocked forward at {target}")
+            
             return py_trees.common.Status.FAILURE
 
         visited = BB.get("visited")
         allow_visit_fallback = BB.get("allow_visit_fallback")
 
+
+        #TEST
+        BB.set("allow_visit_fallback", False)  # reset after movement
         # If target visited and no fallback allowed, fail to re-choose direction
-        if (target in visited) and not allow_visit_fallback:
+        """ if (target in visited) and not allow_visit_fallback:
+            print("visita riuscita")
             BB.set("last_action", f"Forward visited {target} → reselect direction")
-            return py_trees.common.Status.FAILURE
+            return py_trees.common.Status.FAILURE """
 
         # Move
-        BB.set("pose", target)
+        BB.set("pose", target)  #MOVIMENTO EFFETTIVO DEL ROBOT
         visited.add(target)
         BB.set("visited", visited)
         BB.set("last_action", f"Move to {target}")
@@ -299,6 +326,7 @@ class UpdateDeviationCounter(py_trees.behaviour.Behaviour):
         return py_trees.common.Status.SUCCESS
 
 #STEP 2 DEL PLEDGE
+#controlla se l'allineamento globale (deciso all'inizio sta venendo seguito, altrimenti faila)
 class AlignedWithGlobal(py_trees.behaviour.Behaviour):
     def __init__(self, name="Check Alignment"):
         super().__init__(name)
@@ -316,7 +344,9 @@ class ChooseStraightIfFree(py_trees.behaviour.Behaviour):
     def update(self):
         pose = BB.get("pose")
         heading = BB.get("heading_global")  # force global heading when aligned
+        
         target = forward_cell(pose, heading)
+        print(pose,target)
         if is_free(target):
             BB.set("heading", heading)
             BB.set("allow_visit_fallback", False)
@@ -325,6 +355,7 @@ class ChooseStraightIfFree(py_trees.behaviour.Behaviour):
         return py_trees.common.Status.FAILURE
 
 
+#entro se NON posso andare dritto
 class FollowWall(py_trees.behaviour.Behaviour):
     def __init__(self, name="Follow Wall"):
         super().__init__(name)
@@ -335,33 +366,44 @@ class FollowWall(py_trees.behaviour.Behaviour):
         global_heading = BB.get("heading_global")
         counter = BB.get("pledge_counter")
 
+        visited = BB.get("visited")
         forward = forward_cell(pose, heading)
         left = left_cell(pose, heading)
         right = right_cell(pose, heading)
-
+        backright = backright_cell(pose,heading)
+        backleft = backleft_cell(pose,heading)
+        back = backward_cell(pose,heading)
         # Priority: Left if blocked, Right if wall-follow, else forward or global
-
+        #se devo seguire il muro ma è terminato in questo istante (rightforward libera) allora vado a dx
         #DA DEBUGGARE
-        if not is_free(forward):
-            BB.set("heading", (heading - 90) % 360)
-            BB.set("last_action", "Turn Left (wall ahead)")
-            
-        elif is_free(right):
+        #basterebbe gestire i casi di muro da seguire a dx, muro da seguire a sx e tornare indietro in caso contrario
+        #MA NON DEVO SCEGLIERE DI SEGUIRE MURI "GIà VISITATI"
+        # and not (right in visited)  and not (left in visited)
+        if is_free(right) and not is_free(backright):
             BB.set("heading", (heading + 90) % 360)
             BB.set("last_action", "Turn Right (wall follow)")
+            print("RIGHT111 seguo il muro a destra" )
         elif is_free(forward):
             BB.set("heading", heading)
             BB.set("last_action", "Continue forward")
-        elif counter == 0:
-            BB.set("heading", global_heading)
-            BB.set("last_action", "Wall ended → resume global heading")
+            print("VADO DRITTO")
+        elif is_free(left) and not is_free(backleft):
+            BB.set("heading", (heading - 90) % 360)
+            BB.set("last_action", "Turn Right (wall follow)")
+            print("LEFT111 seguo il muro a sinistra" )
+
+        elif is_free(back):# non dovrebbe servire questo controllo
+            BB.set("heading", (heading - 180) % 360)
+            BB.set("last_action", "Going back")
+            print("TORNO INDIETRO")
         else:
             BB.set("last_action", "Wall ended → no free path")
+            print("FAIL")
             return py_trees.common.Status.FAILURE
 
         return py_trees.common.Status.SUCCESS
 
-#STEP 3 DEL PLEDGE        
+""" #STEP 3 DEL PLEDGE        
 class CorrectHeading(py_trees.behaviour.Behaviour):
     def __init__(self, name="Correct Heading"):
         super().__init__(name)
@@ -376,7 +418,7 @@ class CorrectHeading(py_trees.behaviour.Behaviour):
             return py_trees.common.Status.SUCCESS
 
         BB.set("last_action", "Still correcting deviation")
-        return py_trees.common.Status.FAILURE
+        return py_trees.common.Status.FAILURE """
     
 def TremauxSubTree(name="Trémaux"):
     return py_trees.composites.Sequence(name, memory=True, children=[
@@ -606,3 +648,24 @@ if __name__ == "__main__":
 
     gui = MazeGUI(root)
     gui.run()
+
+
+
+
+
+    """ elif not is_free(forward):
+            BB.set("heading", (heading - 90) % 360)
+            BB.set("last_action", "Turn Left (wall ahead)")
+            print("LEFT1 non seguo il muro")
+        elif is_free(right):
+            BB.set("heading", (heading + 90) % 360)
+            BB.set("last_action", "Turn Right (wall follow)")
+            print("RIGHT1 seguo il muro" )
+        elif is_free(forward):
+            BB.set("heading", heading)
+            BB.set("last_action", "Continue forward")
+            print("VADO DRITTO" )
+        elif counter == 0:
+            BB.set("heading", global_heading)
+            BB.set("last_action", "Wall ended → resume global heading")
+            print("Muro terminato, riprendo orientamento globale" )"""
