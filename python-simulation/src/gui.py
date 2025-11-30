@@ -140,7 +140,7 @@ class MazeGUI:
 
             if BB.get("reached_exit"):#STOP SOLO SE RAGGIUNGE L'USCITA
                 self.running = False
-        self.win.after(100, self.loop)
+        self.win.after(UPDATE_PERIOD, self.loop)
 
     def stop(self):
         self.running = False

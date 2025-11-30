@@ -2,9 +2,9 @@
 # Helpers
 # ----------------------------
 from config import *
-import py_trees
+from py_trees.blackboard import Blackboard
 
-BB = py_trees.blackboard.Blackboard()
+BB = Blackboard()
 
 def left_cell(pose, heading):
     return forward_cell(pose, (heading - 90) % 360)
@@ -12,7 +12,8 @@ def left_cell(pose, heading):
 def right_cell(pose, heading):
     return forward_cell(pose, (heading + 90) % 360)
 
-def forward_cell(pose, heading):  #VISUALIZZAZIONE CELLA IN BASE A POSIZIONE E ORIENTAMENTO
+# VISUALIZZAZIONE CELLA IN BASE A POSIZIONE E ORIENTAMENTO
+def forward_cell(pose, heading):
     r, c = pose
     if heading == 0:     return (r - 1, c)
     if heading == 90:    return (r, c + 1)
@@ -39,8 +40,6 @@ def backleft_cell(pose, heading):
 def backright_cell(pose, heading):
     back = backward_cell(pose, heading)
     return right_cell(back, heading)
-
-
 
 def in_bounds(cell):
     r, c = cell
