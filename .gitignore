@@ -1,3 +1,4 @@
 src/venv/
 **/__pycache__/
 **/venv
+**/graphical_trees

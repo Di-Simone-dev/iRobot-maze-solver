@@ -7,7 +7,7 @@ import py_trees
 from config import *
 from helpers import *
 from mazegenerator import *
-#from imagegenerator import *
+import os #per la gestione delle cartelle nei salvataggi dei diagrammi
 
 class MazeGUI:
     def __init__(self, root_node):
@@ -26,7 +26,9 @@ class MazeGUI:
         tk.Button(ctrl, text="Step", command=self.step).pack(side=tk.LEFT, padx=4)
         tk.Button(ctrl, text="Reset Maze", command=self.reset_maze).pack(side=tk.LEFT, padx=4)
         tk.Button(ctrl, text="New Maze", command=self.new_maze).pack(side=tk.LEFT, padx=4)
-        tk.Button(ctrl, text="Save BT SVG", command=self.save_svg).pack(side=tk.LEFT, padx=4)  # NEW: button
+        tk.Button(ctrl, text="Pledge", command=self.select_pledge).pack(side=tk.LEFT, padx=4)
+        tk.Button(ctrl, text="Tremaux", command=self.select_tremaux).pack(side=tk.LEFT, padx=4)
+        tk.Button(ctrl, text="Save BT SVG", command=self.save_svg).pack(side=tk.LEFT, padx=4) 
 
         self.status = tk.StringVar()
         tk.Label(self.win, textvariable=self.status).pack(fill=tk.X, padx=10, pady=4)
@@ -85,7 +87,9 @@ class MazeGUI:
         goal = BB.get("goal")
         reached = BB.get("reached_exit")
         visited_count = len(BB.get("visited"))
-        self.status.set(f"Pose: {pose} | Goal: {goal} | Exit: {reached} | Visited: {visited_count}")
+        algo = BB.get("algorithm_mode")
+        #self.status.set(f"Pose: {pose} | Goal: {goal} | Exit: {reached} | Visited: {visited_count}")
+        self.status.set(f"Pose: {pose} | Goal: {goal} | Exit: {reached} | Visited: {visited_count} | Algorithm: {algo}")
         self.log.set(f"Last action: {BB.get('last_action')}")
 
     def start(self):
@@ -119,13 +123,6 @@ class MazeGUI:
         BB.set("visited", {START})
         BB.set("allow_visit_fallback", False)
         BB.set("pledge_counter", 0)
-        #print("RESET")
-        #print("")
-        #print("")
-        #print("")
-        #print("")
-        #print("")
-        #print("")
         self.draw_maze()
         self.update_status()
         self.running = False
@@ -149,4 +146,20 @@ class MazeGUI:
         self.win.mainloop()
 
     def save_svg(self):
-        py_trees.display.render_dot_tree(self.root_node, name="maze")
+        #py_trees.display.render_dot_tree(self.root_node, name="maze", target_directory="./graphical_trees")
+        output_dir = "./graphical_trees"
+        os.makedirs(output_dir, exist_ok=True)  # crea la cartella se non esiste
+        py_trees.display.render_dot_tree(
+            self.root_node,
+            name="maze",
+            target_directory=output_dir
+        )
+
+
+    def select_pledge(self):
+        BB.set("algorithm_mode", "pledge")
+        self.update_status()
+    
+    def select_tremaux(self):
+        BB.set("algorithm_mode", "tremaux")
+        self.update_status()

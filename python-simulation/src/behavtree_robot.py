@@ -23,7 +23,7 @@ BB.set("visited", {START})            # visited cells set  (Visita dello start)
 BB.set("allow_visit_fallback", False)  # allows moving into visited if no unvisited options exist
 
 #SCELTA ALGORITMO (HARDCODATA PER ORA)
-BB.set("algorithm_mode", "tremaux")
+BB.set("algorithm_mode", "pledge")
 BB.set("pledge_counter", 0)
 BB.set("heading_global", BB.get("heading")) #la direzione che vuoi come riferimento, Pledge la richiede per il "tracking dei giri"
 
@@ -34,9 +34,8 @@ BB.set("heading_global", BB.get("heading")) #la direzione che vuoi come riferime
 # In questo sono mutualmente esclusive
 def PledgeSubTree(name="Pledge Algorithm"):
     # ADDED: Questo non va bene, sennò ritorna un failure e non un behaviour o simili
-    # if(BB.get("algorithm_mode") != "pledge"):
-    #     return py_trees.common.Status.FAILURE
-    
+    # CONCORDO, era per un test sulla modifica del selector e superfluo attualmente
+
     root = Sequence(name, memory = True)
     align_or_follow_selector = Selector(name = "Aligned of Follow", memory = True)
     aligned_straight_sequence = Sequence(name = "Aligned Straight", memory = True)
@@ -58,6 +57,7 @@ def PledgeSubTree(name="Pledge Algorithm"):
 # ADDED: è completo, ma una volta tra tutte quelle che ho provato si è impallato strano per un attimo tipo che ha rieseguito dei percorsi più volte senza senso, e inoltre nei vicoli ciechi da 2 caselle soltanto ogni tanto fa avanti e indietro tipo due volte invece che tornare direttamente indietro
 def TremauxSubTree(name="Tremaux Algorithm"):
     # ADDED: Pure qua
+    # CONCORDO
     # if(BB.get("algorithm_mode") != "tremaux"):
     #     return py_trees.common.Status.FAILURE
     
