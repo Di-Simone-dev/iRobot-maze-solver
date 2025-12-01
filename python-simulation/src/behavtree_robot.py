@@ -38,7 +38,7 @@ def PledgeSubTree(name="Pledge Algorithm"):
 
     root = Sequence(name, memory = True)
     align_or_follow_selector = Selector(name = "Aligned of Follow", memory = True)
-    aligned_straight_sequence = Sequence(name = "Aligned Straight", memory = True)
+    #aligned_straight_sequence = Sequence(name = "Aligned Straight", memory = True)
     follow_or_move_sequence = Sequence(name = "Follow Or Move", memory = True)
     
     update_deviation_counter = UpdateDeviationCounter("Update Counter")
@@ -47,10 +47,12 @@ def PledgeSubTree(name="Pledge Algorithm"):
     follow_wall = FollowWall("Follow Wall")
     move_forward_2 = MoveForward("Move Forward 2")
     
-    root.add_children([update_deviation_counter, align_or_follow_selector])
-    align_or_follow_selector.add_children([aligned_straight_sequence, follow_or_move_sequence])
-    aligned_straight_sequence.add_children([aligned_with_global, move_forward])
-    follow_or_move_sequence.add_children([follow_wall, move_forward_2])
+    #root.add_children([update_deviation_counter, align_or_follow_selector])
+    root.add_children([update_deviation_counter, follow_wall, move_forward_2])
+    #align_or_follow_selector.add_children([aligned_straight_sequence, follow_or_move_sequence])
+    #align_or_follow_selector.add_children([follow_or_move_sequence])
+    #aligned_straight_sequence.add_children([aligned_with_global, move_forward])
+    #follow_or_move_sequence.add_children([follow_wall, move_forward_2])
 
     return root
 
