@@ -15,7 +15,7 @@ class FollowWall(py_trees.behaviour.Behaviour):
         
         global_heading = BB.get("heading_global")
         if BB.get("pledge_counter") == 0 and BB.get("heading") == BB.get("heading_global") and is_free(forward):
-            print("HEADING CORRETTO", BB.get("pledge_counter"))
+            #print("HEADING CORRETTO", BB.get("pledge_counter"))
             return py_trees.common.Status.SUCCESS
         else:
             #pose = BB.get("pose")

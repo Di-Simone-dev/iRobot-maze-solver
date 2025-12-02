@@ -1,5 +1,4 @@
 src/venv/
 **/__pycache__/
 **/venv
-**/graphical_trees
 **/start.txt
