@@ -1,0 +1,7 @@
+string algorithm
+int32[] starting_pos
+int32[] final_pos
+---
+bool success
+---
+int32[] current_pos
