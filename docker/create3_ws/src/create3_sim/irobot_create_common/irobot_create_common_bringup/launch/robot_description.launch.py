@@ -9,6 +9,7 @@ from launch.actions import DeclareLaunchArgument
 from launch.substitutions import Command, PathJoinSubstitution
 from launch.substitutions.launch_configuration import LaunchConfiguration
 from launch_ros.actions import Node
+from launch_ros.parameter_descriptions import ParameterValue
 
 
 ARGUMENTS = [
@@ -37,12 +38,15 @@ def generate_launch_description():
         output='screen',
         parameters=[
             {'use_sim_time': True},
-            {'robot_description':
-             Command(
-                  ['xacro', ' ', xacro_file, ' ',
-                   'gazebo:=', gazebo_simulator, ' ',
-                   'visualize_rays:=', visualize_rays, ' ',
-                   'namespace:=', namespace])},
+            {'robot_description': ParameterValue(
+                Command(
+                    ['xacro', ' ', xacro_file, ' ',
+                    'gazebo:=', gazebo_simulator, ' ',
+                    'visualize_rays:=', visualize_rays, ' ',
+                    'namespace:=', namespace]
+                ),
+                value_type=str
+            )},
         ],
         remappings=[
             ('/tf', 'tf'),
