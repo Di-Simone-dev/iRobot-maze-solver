@@ -1,11 +1,11 @@
 {
     "name": "CREATE3_WS",
     "privileged": true,
-    "remoteUser": "lorenzo",
+    "remoteUser": "js",
     "build": {
         "dockerfile": "Dockerfile",
         "args": {
-            "USERNAME": "lorenzo"
+            "USERNAME": "js"
         }
     },
     "workspaceFolder": "/home/ws",
