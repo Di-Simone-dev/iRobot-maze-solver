@@ -10,7 +10,6 @@
   <xacro:include filename="$(find irobot_create_description)/urdf/sensors/ir_opcode_receivers.urdf.xacro" />
   <xacro:include filename="$(find irobot_create_description)/urdf/sensors/optical_mouse.urdf.xacro"/>
   <xacro:include filename="$(find irobot_create_description)/urdf/wheel_with_wheeldrop.urdf.xacro" />
-  <xacro:include filename="$(find irobot_create_description)/urdf/sensors/lidar.urdf.xacro" />
 
   <!-- Gazebo version -->
   <xacro:arg name="gazebo"                       default="classic" />
@@ -98,12 +97,6 @@
                iyy="0.0002521736852" iyz="-0.0000000006721" izz="0.0015442525386"/>
     </inertial>
   </xacro:bumper>
-
-  <!-- LIDAR -->
-  <xacro:lidar2d_sensor name="lidar" parent="base_link">
-    <origin xyz="0 0 0.1" rpy="0 0 0"/>
-  </xacro:lidar2d_sensor>
-
 
   <!-- Wheels with mechanical wheel drop -->
   <xacro:wheel_with_wheeldrop name="left" gazebo="$(arg gazebo)" namespace="$(arg namespace)">
