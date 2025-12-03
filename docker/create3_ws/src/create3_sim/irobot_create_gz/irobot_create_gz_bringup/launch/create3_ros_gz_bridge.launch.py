@@ -190,6 +190,55 @@ def generate_launch_description():
         ]
     )
 
+    # LiDAR bridge
+    lidar_bridge = GroupAction([
+        # LaserScan bridge
+        Node(
+            package='ros_gz_bridge',
+            executable='parameter_bridge',
+            name='lidar_scan_bridge',
+            output='screen',
+            parameters=[{'use_sim_time': use_sim_time, 'lazy': False}],
+            arguments=[
+                [  # concatenazione dinamica dei LaunchConfiguration
+                    '/world/', world, 
+                    '/model/', robot_name, 
+                    '/link/lidar/sensor/lidar/scan',
+                    '@sensor_msgs/msg/LaserScan[gz.msgs.LaserScan'
+                ]
+            ],
+            remappings=[
+                ([ '/world/', world,
+                '/model/', robot_name,
+                '/link/lidar/sensor/lidar/scan' ],
+                'lidar/scan')
+            ]
+        ),
+        # PointCloud2 bridge
+        Node(
+            package='ros_gz_bridge',
+            executable='parameter_bridge',
+            name='lidar_points_bridge',
+            output='screen',
+            parameters=[{'use_sim_time': use_sim_time, 'lazy': False}],
+            arguments=[
+                [
+                    '/world/', world, 
+                    '/model/', robot_name, 
+                    '/link/lidar/sensor/lidar/scan/points',
+                    '@sensor_msgs/msg/PointCloud2[gz.msgs.PointCloudPacked'
+                ]
+            ],
+            remappings=[
+                ([ '/world/', world,
+                '/model/', robot_name,
+                '/link/lidar/sensor/lidar/scan/points' ],
+                'lidar/scan_points')
+            ]
+        )
+    ])
+
+
     # Create launch description and add actions
     ld = LaunchDescription(ARGUMENTS)
     ld.add_action(cmd_vel_bridge)
@@ -199,4 +248,5 @@ def generate_launch_description():
     ld.add_action(cliff_bridges)
     ld.add_action(ir_bridges)
     ld.add_action(buttons_msg_bridge)
+    ld.add_action(lidar_bridge)
     return ld
