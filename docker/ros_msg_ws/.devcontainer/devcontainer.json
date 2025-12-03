@@ -1,5 +1,5 @@
 {
-    "name": "CREATE3_WS",
+    "name": "ROS_MSG_WS",
     "privileged": true,
     "remoteUser": "lorenzo",
     "build": {
@@ -25,7 +25,7 @@
         "ROS_DOMAIN_ID": "42"
     },
     "runArgs": [
-        "--name=create3_ws",
+        "--name=ros_msg_ws",
         "--net=host",
         "--pid=host",
         "--ipc=host",

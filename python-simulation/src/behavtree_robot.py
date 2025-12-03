@@ -16,7 +16,7 @@ from behaviours import *
 BB.set("pose", START)    #SET POSIZIONE INIZIALE
 BB.set("goal", GOAL)     #SET OBIETTIVO
 BB.set("maze_walls", set())            # blocked cells {(r,c)}
-BB.set("heading", 0)                  # 0=N, 90=E, 180=S, 270=W SET ORIENTAMENTO INIZIALE
+BB.set("heading", 90)                  # 0=N, 90=E, 180=S, 270=W SET ORIENTAMENTO INIZIALE
 BB.set("reached_exit", False)
 BB.set("last_action", "Idle")
 BB.set("visited", {START})            # visited cells set  (Visita dello start)
@@ -64,13 +64,19 @@ def TremauxSubTree(name="Tremaux Algorithm"):
     #     return py_trees.common.Status.FAILURE
     
     root = Sequence(name, memory=True)
-
+    exit_or_explore_selector = Selector("Exit or Explore", memory=True)
+    explore_sequence = Sequence("Explore Step", memory = True)
+    
+    check_exit = CheckExit("Check Exit")
     choose_unvisited_path = ChooseUnvisitedPath()
     mark_path = MarkPath()
     move_forward = MoveForwardTremaux()
     backtrack_if_dead_end = BacktrackIfDeadEnd()
     
-    root.add_children([choose_unvisited_path, mark_path, move_forward, backtrack_if_dead_end])
+    explore_sequence.add_children([choose_unvisited_path, mark_path, move_forward, backtrack_if_dead_end])
+    exit_or_explore_selector.add_children([check_exit, explore_sequence])
+    
+    root.add_children([exit_or_explore_selector])
    
     return root
 
