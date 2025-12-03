@@ -1,5 +1,5 @@
-build
-install
-log
-.devcontainer
-.vscode
+build/
+install/
+log/
+.devcontainer/
+.vscode/
