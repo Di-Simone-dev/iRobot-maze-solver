@@ -24,6 +24,7 @@ endif()
 
 rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/Command.msg"
+  "action/Solve.action"
 )
 
 ament_export_dependencies(rosidl_default_runtime)
