@@ -4,8 +4,11 @@
 #include "irobot_create_msgs/action/drive_distance.hpp"
 #include "irobot_create_msgs/action/rotate_angle.hpp"
 #include "irobot_create_msgs/srv/e_stop.hpp"
+#include "irobot_create_msgs/action/dock.hpp"
+#include "irobot_create_msgs/action/undock.hpp"
 
 #include "custom_msg/action/actuator_move.hpp"
+#include "custom_msg/action/actuator_dock.hpp"
 #include "custom_msg/srv/stop.hpp"
 
 
@@ -23,12 +26,33 @@ public:
 
         eStopClient = this->create_client<irobot_create_msgs::srv::EStop>("e_stop");
 
+        // Dock client
+        dockClient = rclcpp_action::create_client<irobot_create_msgs::action::Dock>(
+            this,
+            "dock"
+        );
+
+        // Undock client
+        undockClient = rclcpp_action::create_client<irobot_create_msgs::action::Undock>(
+            this,
+            "undock"
+        );
+
+        // Servers
         movementServer = rclcpp_action::create_server<custom_msg::action::ActuatorMove>(
             this,
             "actuator_movement",
-            std::bind(&Actuator::handle_solve_goal, this, _1, _2),
-            std::bind(&Actuator::handle_solve_cancel, this, _1),
-            std::bind(&Actuator::handle_solve_accepted, this, _1)
+            std::bind(&Actuator::handle_movement_goal, this, _1, _2),
+            std::bind(&Actuator::handle_movement_cancel, this, _1),
+            std::bind(&Actuator::handle_movement_accepted, this, _1)
+        );
+
+        dockServer = rclcpp_action::create_server<custom_msg::action::ActuatorDock>(
+            this,
+            "actuator_dock",
+            std::bind(&Actuator::handle_dock_goal, this, _1, _2),
+            std::bind(&Actuator::handle_dock_cancel, this, _1),
+            std::bind(&Actuator::handle_dock_accepted, this, _1)
         );
 
         stopServer = this->create_service<custom_msg::srv::Stop>(
@@ -44,9 +68,208 @@ private:
     rclcpp_action::Client<irobot_create_msgs::action::DriveDistance>::SharedPtr driveDistanceClient;
     rclcpp_action::Client<irobot_create_msgs::action::RotateAngle>::SharedPtr rotateAngleClient;
     rclcpp::Client<irobot_create_msgs::srv::EStop>::SharedPtr eStopClient;
+    rclcpp_action::Client<irobot_create_msgs::action::Dock>::SharedPtr dockClient;
+    rclcpp_action::Client<irobot_create_msgs::action::Undock>::SharedPtr undockClient;
 
     rclcpp_action::Server<custom_msg::action::ActuatorMove>::SharedPtr movementServer;
+    rclcpp_action::Server<custom_msg::action::ActuatorDock>::SharedPtr dockServer;
     rclcpp::Service<custom_msg::srv::Stop>::SharedPtr stopServer;
+    
+
+    // --------------------------
+    // Dock Action Server Callbacks
+    // --------------------------
+    rclcpp_action::GoalResponse handle_dock_goal(
+        const rclcpp_action::GoalUUID &,
+        std::shared_ptr<const custom_msg::action::ActuatorDock::Goal> goal)
+    {
+        return rclcpp_action::GoalResponse::ACCEPT_AND_EXECUTE;
+    }
+
+    rclcpp_action::CancelResponse handle_dock_cancel(
+        const std::shared_ptr<rclcpp_action::ServerGoalHandle<custom_msg::action::ActuatorDock>>)
+    {
+        return rclcpp_action::CancelResponse::ACCEPT;
+    }
+
+    void handle_dock_accepted(
+        const std::shared_ptr<rclcpp_action::ServerGoalHandle<custom_msg::action::ActuatorDock>> goal_handle)
+    {
+        std::thread(&Actuator::execute_dock, this, goal_handle).detach();
+    }
+
+    // ====================
+    //     DOCK CALLBACK
+    // ====================
+    void execute_dock(
+        const std::shared_ptr<rclcpp_action::ServerGoalHandle<custom_msg::action::ActuatorDock>> goal_handle)
+    {
+        RCLCPP_INFO(this->get_logger(), "Dock action started");
+
+        const auto goal = goal_handle->get_goal();
+
+        // Prepara result
+        auto result   = std::make_shared<custom_msg::action::ActuatorDock::Result>();
+
+        // ============================
+        //        DOCK
+        // ============================
+        if (goal->type == "DOCK")
+        {
+            send_dock_goal(goal_handle);
+            return;
+        }
+
+        // ============================
+        //         UNDOCK
+        // ============================
+        if (goal->type == "UNDOCK")
+        {
+            send_undock_goal(goal_handle);
+            return;
+        }
+
+        // ============================
+        //  Tipo sconosciuto → errore
+        // ============================
+        result->status = false;
+        RCLCPP_ERROR(this->get_logger(), "Unknown type: '%s'", goal->type.c_str());
+    }
+
+
+    // ====================
+    //     Dock goal
+    // ====================
+    void send_dock_goal(
+        std::shared_ptr<rclcpp_action::ServerGoalHandle<custom_msg::action::ActuatorDock>> actuator_goal)
+    {
+        using namespace std::placeholders;
+
+        if (!dockClient->wait_for_action_server()) {
+            RCLCPP_ERROR(this->get_logger(), "Dock action server not available");
+
+            auto result = std::make_shared<custom_msg::action::ActuatorDock::Result>();
+            result->status = false;
+            actuator_goal->abort(result);
+            return;
+        }
+
+        irobot_create_msgs::action::Dock::Goal goal_msg;
+
+        auto options = rclcpp_action::Client<irobot_create_msgs::action::Dock>::SendGoalOptions();
+
+        // RESPONSE
+        options.goal_response_callback =
+            [this](auto handle) {
+                if (!handle)
+                    RCLCPP_ERROR(this->get_logger(), "[IROBOT DOCK] Goal rejected");
+                else
+                    RCLCPP_INFO(this->get_logger(), "[IROBOT DOCK] Goal accepted");
+            };
+
+        // RESULT
+        options.result_callback =
+            [this, actuator_goal](const rclcpp_action::ClientGoalHandle<irobot_create_msgs::action::Dock>::WrappedResult & r)
+            {
+                auto result = std::make_shared<custom_msg::action::ActuatorDock::Result>();
+
+                switch (r.code) {
+                    case rclcpp_action::ResultCode::SUCCEEDED:
+                        result->status = true;
+                        actuator_goal->succeed(result);
+                        RCLCPP_INFO(this->get_logger(), "[IROBOT DOCK] SUCCESS");
+                        return;
+
+                    case rclcpp_action::ResultCode::ABORTED:
+                        result->status = false;
+                        actuator_goal->abort(result);
+                        RCLCPP_ERROR(this->get_logger(), "[IROBOT DOCK] ABORTED");
+                        return;
+
+                    case rclcpp_action::ResultCode::CANCELED:
+                        result->status = false;
+                        actuator_goal->canceled(result);
+                        RCLCPP_ERROR(this->get_logger(), "[IROBOT DOCK] CANCELED");
+                        return;
+
+                    default:
+                        result->status = false;
+                        actuator_goal->abort(result);
+                        RCLCPP_ERROR(this->get_logger(), "[IROBOT DOCK] UNKNOWN RESULT");
+                        return;
+                }
+            };
+
+        dockClient->async_send_goal(goal_msg, options);
+    }
+
+
+    // ====================
+    //     Undock goal
+    // ====================
+    void send_undock_goal(
+        std::shared_ptr<rclcpp_action::ServerGoalHandle<custom_msg::action::ActuatorDock>> actuator_goal)
+    {
+        using namespace std::placeholders;
+
+        if (!undockClient->wait_for_action_server()) {
+            RCLCPP_ERROR(this->get_logger(), "Undock action server not available");
+
+            auto result = std::make_shared<custom_msg::action::ActuatorDock::Result>();
+            result->status = false;
+            actuator_goal->abort(result);
+            return;
+        }
+
+        irobot_create_msgs::action::Undock::Goal goal_msg;
+
+        auto options = rclcpp_action::Client<irobot_create_msgs::action::Undock>::SendGoalOptions();
+
+        // RESPONSE
+        options.goal_response_callback =
+            [this](auto handle) {
+                if (!handle)
+                    RCLCPP_ERROR(this->get_logger(), "[IROBOT UNDOCK] Goal rejected");
+                else
+                    RCLCPP_INFO(this->get_logger(), "[IROBOT UNDOCK] Goal accepted");
+            };
+
+        // RESULT
+        options.result_callback =
+            [this, actuator_goal](const rclcpp_action::ClientGoalHandle<irobot_create_msgs::action::Undock>::WrappedResult &r)
+            {
+                auto result = std::make_shared<custom_msg::action::ActuatorDock::Result>();
+
+                switch (r.code) {
+                    case rclcpp_action::ResultCode::SUCCEEDED:
+                        result->status = true;
+                        actuator_goal->succeed(result);
+                        RCLCPP_INFO(this->get_logger(), "[IROBOT UNDOCK] SUCCESS");
+                        return;
+
+                    case rclcpp_action::ResultCode::ABORTED:
+                        result->status = false;
+                        actuator_goal->abort(result);
+                        RCLCPP_ERROR(this->get_logger(), "[IROBOT UNDOCK] ABORTED");
+                        return;
+
+                    case rclcpp_action::ResultCode::CANCELED:
+                        result->status = false;
+                        actuator_goal->canceled(result);
+                        RCLCPP_ERROR(this->get_logger(), "[IROBOT UNDOCK] CANCELED");
+                        return;
+
+                    default:
+                        result->status = false;
+                        actuator_goal->abort(result);
+                        RCLCPP_ERROR(this->get_logger(), "[IROBOT UNDOCK] UNKNOWN RESULT");
+                        return;
+                }
+            };
+
+        undockClient->async_send_goal(goal_msg, options);
+    }
+
 
     // ======================
     //      Handle stop
@@ -80,28 +303,26 @@ private:
         request->e_stop_on = stop;
         
         // Sending request
-        auto future = eStopClient->async_send_request(request);
-        
-        // waiting response
-        if (rclcpp::spin_until_future_complete(this->get_node_base_interface(), future) == rclcpp::FutureReturnCode::SUCCESS) {
-            auto response = future.get();
+        eStopClient->async_send_request(request,
+        [this](rclcpp::Client<irobot_create_msgs::srv::EStop>::SharedFuture future_response)
+        {
+            auto response = future_response.get();
             RCLCPP_INFO(this->get_logger(), "Response: success=%s", response->success ? "true" : "false");
-        } else {
-            RCLCPP_ERROR(this->get_logger(), "Error during EStop calling");
         }
+);
     };
 
 
     // Runtime state
-    float last_drive_remaining = std::numeric_limits<float>::infinity();
-    float last_angle_remaining = std::numeric_limits<float>::infinity();
-    int drive_status = -1;
-    int angle_status = -1;
+    std::atomic<float> last_drive_remaining = std::numeric_limits<float>::infinity();
+    std::atomic<float> last_angle_remaining = std::numeric_limits<float>::infinity();
+    std::atomic<int>  drive_status = -1;
+    std::atomic<int>  angle_status = -1;
 
     // --------------------------
-    // Action Server Callbacks
+    // Movement Action Server Callbacks
     // --------------------------
-    rclcpp_action::GoalResponse handle_solve_goal(
+    rclcpp_action::GoalResponse handle_movement_goal(
         const rclcpp_action::GoalUUID &,
         std::shared_ptr<const custom_msg::action::ActuatorMove::Goal> goal)
     {
@@ -112,22 +333,22 @@ private:
         return rclcpp_action::GoalResponse::ACCEPT_AND_EXECUTE;
     }
 
-    rclcpp_action::CancelResponse handle_solve_cancel(
+    rclcpp_action::CancelResponse handle_movement_cancel(
         const std::shared_ptr<rclcpp_action::ServerGoalHandle<custom_msg::action::ActuatorMove>>)
     {
         return rclcpp_action::CancelResponse::ACCEPT;
     }
 
-    void handle_solve_accepted(
+    void handle_movement_accepted(
         const std::shared_ptr<rclcpp_action::ServerGoalHandle<custom_msg::action::ActuatorMove>> goal_handle)
     {
-        std::thread(&Actuator::execute_solve, this, goal_handle).detach();
+        std::thread(&Actuator::execute_movement, this, goal_handle).detach();
     }
 
     // --------------------------
     // EXECUTION LOGIC
     // --------------------------
-    void execute_solve(const std::shared_ptr<rclcpp_action::ServerGoalHandle<custom_msg::action::ActuatorMove>> goal_handle)
+    void execute_movement(const std::shared_ptr<rclcpp_action::ServerGoalHandle<custom_msg::action::ActuatorMove>> goal_handle)
     {
         const auto goal = goal_handle->get_goal();
 
@@ -230,8 +451,8 @@ private:
     // SEND ROTATE ANGLE GOAL
     // ---------------------------------------------
     bool create3_begin_angle(float angle, float speed,
-                     std::shared_ptr<custom_msg::action::ActuatorMove::Result> &result,
-                     const std::shared_ptr<rclcpp_action::ServerGoalHandle<custom_msg::action::ActuatorMove>> &goal_handle)
+        std::shared_ptr<custom_msg::action::ActuatorMove::Result> &result,
+        const std::shared_ptr<rclcpp_action::ServerGoalHandle<custom_msg::action::ActuatorMove>> &goal_handle)
     {
         if (angle == 0.0f) {
             result->status = true;
@@ -289,7 +510,8 @@ private:
             }
 
             if (!std::isinf(last_drive_remaining)) {
-                float perc = (goal->distance - last_drive_remaining) * 100.0f / goal->distance;
+                start = now();  // reset timeout
+                float perc = (1.0f - (last_drive_remaining / goal->distance)) * 100.0f;
                 feedback->percentage = std::clamp(perc, 0.0f, 100.0f);
                 goal_handle->publish_feedback(feedback);
             }
@@ -333,7 +555,8 @@ private:
             }
 
             if (!std::isinf(last_angle_remaining)) {
-                float perc = (goal->distance - last_angle_remaining) * 100.0f / goal->distance;
+                start = now();  // reset timeout
+                float perc = (1.0f - (last_angle_remaining / goal->distance)) * 100.0f;
                 feedback->percentage = std::clamp(perc, 0.0f, 100.0f);
                 goal_handle->publish_feedback(feedback);
             }

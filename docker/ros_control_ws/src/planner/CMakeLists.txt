@@ -9,6 +9,7 @@ endif()
 find_package(ament_cmake REQUIRED)
 
 find_package(rclcpp REQUIRED)
+find_package(rclcpp_action REQUIRED)
 find_package(irobot_create_msgs REQUIRED)
 find_package(custom_msg REQUIRED)
 
@@ -16,6 +17,7 @@ add_executable(planner src/controller.cpp)
 ament_target_dependencies(
   planner
   rclcpp
+  rclcpp_action
   irobot_create_msgs
   custom_msg
 )

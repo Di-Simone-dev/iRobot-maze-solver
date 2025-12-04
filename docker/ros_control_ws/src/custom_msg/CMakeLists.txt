@@ -26,6 +26,7 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/Command.msg"
   "action/Solve.action"
   "action/ActuatorMove.action"
+  "action/ActuatorDock.action"
   "srv/Stop.srv"
 )
 
