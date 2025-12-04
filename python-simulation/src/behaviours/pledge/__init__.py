@@ -1,3 +1,3 @@
-from .AlignedWithGlobal import AlignedWithGlobal
+#from .AlignedWithGlobal import AlignedWithGlobal
 from .FollowWall import FollowWall
 from .UpdateDeviationCounter import UpdateDeviationCounter

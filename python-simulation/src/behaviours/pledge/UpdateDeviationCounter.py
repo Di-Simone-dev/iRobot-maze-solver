@@ -5,18 +5,26 @@ from helpers import *
 class UpdateDeviationCounter(py_trees.behaviour.Behaviour):
     def __init__(self, name="Update Counter"):
         super().__init__(name)
-
+    
     def update(self):
         counter = BB.get("pledge_counter") if BB.exists("pledge_counter") else 0
         last_action = BB.get("last_action") if BB.exists("last_action") else ""
-        #print("Pledge counter attuale", BB.get("pledge_counter"),last_action)
-        if "Turn Left" in last_action: counter -= 1     #li ho invertiti dx => + , sx => - 
-        elif "Turn Right" in last_action: counter += 1
-        elif "Turn Back (2 times left)" in last_action: counter -= 2
-        elif "Turn Back (2 times right)" in last_action: counter += 2
-    
+        
+        # Map actions to counter changes
+        action_deltas = {
+            "Turn Left": -1,
+            "Turn Right": 1,
+            "Turn Back (2 times left)": -2,
+            "Turn Back (2 times right)": 2
+        }
+        
+        # Update counter based on last action
+        for action, delta in action_deltas.items():
+            if action in last_action:
+                counter += delta
+                break
+        
         BB.set("pledge_counter", counter)
-        #print("Pledge counter aggiornato", BB.get("pledge_counter"),last_action)
-        # don't overwrite last_action used by other nodes
         BB.set("pledge_counter_log", f"Pledge counter: {counter}")
+        
         return py_trees.common.Status.SUCCESS

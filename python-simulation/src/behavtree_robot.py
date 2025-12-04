@@ -31,38 +31,16 @@ BB.set("heading_global", BB.get("heading")) #la direzione che vuoi come riferime
 # Build behaviour tree (reactive, unblocked)
 # ----------------------------
 
-# In questo sono mutualmente esclusive
 def PledgeSubTree(name="Pledge Algorithm"):
-    # ADDED: Questo non va bene, sennò ritorna un failure e non un behaviour o simili
-    # CONCORDO, era per un test sulla modifica del selector e superfluo attualmente
-
     root = Sequence(name, memory = True)
-    align_or_follow_selector = Selector(name = "Aligned of Follow", memory = True)
-    #aligned_straight_sequence = Sequence(name = "Aligned Straight", memory = True)
-    follow_or_move_sequence = Sequence(name = "Follow Or Move", memory = True)
-    
     update_deviation_counter = UpdateDeviationCounter("Update Counter")
-    aligned_with_global = AlignedWithGlobal("Check Alignment")
-    move_forward = MoveForward("Move Forward")
     follow_wall = FollowWall("Follow Wall")
-    move_forward_2 = MoveForward("Move Forward 2")
-    
-    #root.add_children([update_deviation_counter, align_or_follow_selector])
-    root.add_children([update_deviation_counter, follow_wall, move_forward_2])
-    #align_or_follow_selector.add_children([aligned_straight_sequence, follow_or_move_sequence])
-    #align_or_follow_selector.add_children([follow_or_move_sequence])
-    #aligned_straight_sequence.add_children([aligned_with_global, move_forward])
-    #follow_or_move_sequence.add_children([follow_wall, move_forward_2])
-
+    move_forward = MoveForward("Move Forward")
+    root.add_children([update_deviation_counter, follow_wall, move_forward])
     return root
 
 # ADDED: è completo, ma una volta tra tutte quelle che ho provato si è impallato strano per un attimo tipo che ha rieseguito dei percorsi più volte senza senso, e inoltre nei vicoli ciechi da 2 caselle soltanto ogni tanto fa avanti e indietro tipo due volte invece che tornare direttamente indietro
 def TremauxSubTree(name="Tremaux Algorithm"):
-    # ADDED: Pure qua
-    # CONCORDO
-    # if(BB.get("algorithm_mode") != "tremaux"):
-    #     return py_trees.common.Status.FAILURE
-    
     root = Sequence(name, memory=True)
     exit_or_explore_selector = Selector("Exit or Explore", memory=True)
     explore_sequence = Sequence("Explore Step", memory = True)
