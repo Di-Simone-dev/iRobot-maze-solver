@@ -5,10 +5,12 @@ import random
 # ----------------------------
 # Configurazioni
 # ----------------------------
-GRID_SIZE = 11  # Numero di celle nel lato della griglia quadrata (DISPARI)
+GRID_SIZE = 21  # Numero di celle nel lato della griglia quadrata (DISPARI)
 #CELL_SIZE = 15  # Dimensione celle in PIXEL
 #UPDATE_PERIOD = 1  # refresh ogni 1ms
-
+#VOGLIO ottenere un maze centrato e corretto
+SHIFT_AMOUNT = GRID_SIZE // 2  # per centrare il maze
+#Ora cambio la dinamica di spawn dei muri shiftando x e y 
 START = (1, 1)  # RANDOMIZZABILE idealmente
 GOAL = (GRID_SIZE - 2, GRID_SIZE - 2)
 # CONFIGURAZIONI DI GAZEBO
@@ -42,7 +44,7 @@ def add_obstacle_wall(obstacle_walls, x, y):
     """
     wall_num = len(obstacle_walls) + 1
     wall_name = f'wall{wall_num}'
-    pose = f'{x} {y} 0 0 0 0'
+    pose = f'{x-SHIFT_AMOUNT} {y-SHIFT_AMOUNT} 0 0 0 0'
     size = '1 1 1'
     
     obstacle_walls.append((wall_name, pose, size))
@@ -150,7 +152,9 @@ def create_complete_sdf_world(custom_obstacles=None):
     
     ET.SubElement(ground, 'plugin', name='__default__', filename='__default__')
     ET.SubElement(ground, 'pose').text = '0 0 0 0 -0 0'
-    
+
+
+
     # Border model con 4 muri
     border = ET.SubElement(world, 'model', name='border')
     ET.SubElement(border, 'pose').text = '0 0 1 0 0 0'

@@ -8,11 +8,14 @@ source home/ws/install/setup.bash
 
 #SIMULAZIONE CON MAPPA NUOVA 
 
-ros2 launch irobot_create_gz_bringup create3_gz.launch.py gazebo:=ignition world:=custom x:=1.0 y:=1.0 
+colcon build --symlink-install
 
 
 
-ros2 launch irobot_create_gz_bringup create3_gz.launch.py gazebo:=ignition world:=custom x:=1.0 y:=1.0 yaw:=-1.5708
+
+
+#COMANDO PER IL LANCIO
+ros2 launch irobot_create_gz_bringup create3_gz.launch.py gazebo:=ignition world:=custom x:=-9.0 y:=-9.0 yaw:=-1.5708
 
 
 
