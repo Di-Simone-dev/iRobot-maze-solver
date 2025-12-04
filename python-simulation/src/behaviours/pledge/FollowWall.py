@@ -64,7 +64,9 @@ class FollowWall(py_trees.behaviour.Behaviour):
                 elif is_free(back):# QUI DEVO CAPIRE come gestire il pledgecounter ipotizzo di girare a sx 2 volte
                     #POSSO FARLO ANCHE IN 2 STEP (PROBABILMENTE PIù ADATTO)
                     BB.set("heading", (heading - 180) % 360)
-                    BB.set("last_action", "Turn Back (2 times right)")
+                    #PROVO AD INVERTIRE
+                    BB.set("last_action", "Turn Back (2 times left)")
+                    #BB.set("last_action", "Turn Back (2 times right)")
                     #print("TORNO INDIETRO")
                 else:
                     BB.set("last_action", "Wall ended → no free path")
@@ -92,7 +94,13 @@ class FollowWall(py_trees.behaviour.Behaviour):
 
                 elif is_free(back):# non dovrebbe servire questo controllo
                     BB.set("heading", (heading - 180) % 360)
+                    #PROVO AD INVERTIRE
+
+                    
                     BB.set("last_action", "Turn Back (2 times left)")
+
+
+                    #BB.set("last_action", "Turn Back (2 times right)")
                     #print("TORNO INDIETRO")
                 else:
                     BB.set("last_action", "Wall ended → no free path")
