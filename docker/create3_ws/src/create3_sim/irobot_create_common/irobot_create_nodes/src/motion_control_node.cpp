@@ -281,6 +281,7 @@ void MotionControlNode::control_robot()
   if (!e_stop_engaged_) {
     *cmd_out_msg = *command;
   }
+  cmd_out_msg->header.stamp = this->get_clock()->now();
   cmd_vel_out_pub_->publish(std::move(cmd_out_msg));
   auto wheel_status_msg = std::make_unique<irobot_create_msgs::msg::WheelStatus>();
   wheel_status_msg->header.stamp = this->now();
