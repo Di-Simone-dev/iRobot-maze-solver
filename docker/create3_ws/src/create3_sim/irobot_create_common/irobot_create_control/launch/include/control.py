@@ -35,7 +35,7 @@ def generate_launch_description():
             '-c',
             'controller_manager',
             '--controller-manager-timeout',
-            '30'
+            '120'
         ],
         output='screen',
     )
@@ -48,7 +48,7 @@ def generate_launch_description():
             '-c',
             'controller_manager',
             '--controller-manager-timeout',
-            '30'
+            '240'
         ],
         output='screen',
     )

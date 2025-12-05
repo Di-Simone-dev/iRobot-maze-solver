@@ -160,7 +160,7 @@ class Controller : public rclcpp::Node {
 
             // Controllo input
             if (type != "DISTANCE" && type != "ANGLE") {
-                RCLCPP_ERROR(this->get_logger(), "Invalid type sent to actuator_dock: %s", type.c_str());
+                RCLCPP_ERROR(this->get_logger(), "Invalid type sent to actuator_movement: %s", type.c_str());
                 return;
             }
 

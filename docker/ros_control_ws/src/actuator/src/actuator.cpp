@@ -499,27 +499,30 @@ private:
         std::shared_ptr<custom_msg::action::ActuatorMove::Result> &result)
     {
         rclcpp::Rate rate(20);
-        auto start = now();
+        auto start = this->get_clock()->now();
 
         while (rclcpp::ok())
         {
+            // Check if goal was canceled
             if (goal_handle->is_canceling()) {
                 result->status = false;
                 goal_handle->canceled(result);
                 return;
             }
 
+            // Publish feedback if we have a valid value
             if (!std::isinf(last_drive_remaining)) {
-                start = now();  // reset timeout
-                float perc = (1.0f - (last_drive_remaining / goal->distance)) * 100.0f;
+                float perc = (1.0f - (last_drive_remaining / std::abs(goal->distance))) * 100.0f;
                 feedback->percentage = std::clamp(perc, 0.0f, 100.0f);
                 goal_handle->publish_feedback(feedback);
             }
 
+            // Check if goal is done
             if (drive_status != -1)
                 break;
 
-            if ((now() - start).seconds() > 20.0) {
+            // Timeout check independent from feedback
+            if ((this->get_clock()->now() - start).seconds() > 20.0) {
                 RCLCPP_ERROR(get_logger(), "Drive distance TIMEOUT");
                 result->status = false;
                 goal_handle->abort(result);
@@ -529,6 +532,7 @@ private:
             rate.sleep();
         }
 
+        // Publish final result
         result->status = (drive_status == 0);
         if (result->status) goal_handle->succeed(result);
         else goal_handle->abort(result);
@@ -544,28 +548,31 @@ private:
         std::shared_ptr<custom_msg::action::ActuatorMove::Result> &result)
     {
         rclcpp::Rate rate(20);
-        auto start = now();
+        auto start = this->get_clock()->now();
 
         while (rclcpp::ok())
         {
+            // Check if goal was canceled
             if (goal_handle->is_canceling()) {
                 result->status = false;
                 goal_handle->canceled(result);
                 return;
             }
 
+            // Publish feedback if we have a valid value
             if (!std::isinf(last_angle_remaining)) {
-                start = now();  // reset timeout
-                float perc = (1.0f - (last_angle_remaining / goal->distance)) * 100.0f;
+                float perc = (1.0f - (last_angle_remaining / std::abs(goal->distance))) * 100.0f;
                 feedback->percentage = std::clamp(perc, 0.0f, 100.0f);
                 goal_handle->publish_feedback(feedback);
             }
 
+            // Check if goal is done
             if (angle_status != -1)
                 break;
 
-            if ((now() - start).seconds() > 20.0) {
-                RCLCPP_ERROR(get_logger(), "Rotate angle TIMEOUT");
+            // Timeout check independent from feedback
+            if ((this->get_clock()->now() - start).seconds() > 20.0) {
+                RCLCPP_ERROR(get_logger(), "Drive angle TIMEOUT");
                 result->status = false;
                 goal_handle->abort(result);
                 return;
@@ -574,6 +581,7 @@ private:
             rate.sleep();
         }
 
+        // Publish final result
         result->status = (angle_status == 0);
         if (result->status) goal_handle->succeed(result);
         else goal_handle->abort(result);
