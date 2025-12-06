@@ -9,7 +9,8 @@ def generate_launch_description():
         name='planner',
         output='screen',
         emulate_tty=True,
-        parameters=[{'use_sim_time': True}]
+        parameters=[{'use_sim_time': True}],
+        arguments=['--ros-args', '--log-level', 'INFO']
     )
 
     actuator = Node(
@@ -18,7 +19,8 @@ def generate_launch_description():
         name='actuator',
         output='screen',
         emulate_tty=True,
-        parameters=[{'use_sim_time': True}]
+        parameters=[{'use_sim_time': True}],
+        arguments=['--ros-args', '--log-level', 'INFO']
     )
 
     return LaunchDescription([

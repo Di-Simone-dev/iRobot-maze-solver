@@ -263,9 +263,17 @@ class Controller : public rclcpp::Node {
         void main_loop() {
             if(command != "") {
                 if(command == "DOCK") {
-                    send_actuator_dock_goal("DOCK");
+                    if(is_docked) {
+                        RCLCPP_ERROR(this->get_logger(), "Already docked!");
+                    } else {
+                        send_actuator_dock_goal("DOCK");
+                    }
                 } else if(command == "UNDOCK") {
-                    send_actuator_dock_goal("UNDOCK");
+                    if(is_docked) {
+                        send_actuator_dock_goal("UNDOCK");
+                    } else {
+                        RCLCPP_ERROR(this->get_logger(), "Already undocked!");
+                    }
                 } else if(command == "MODE A") {
                     this->mode = 0;
                 } else if(command == "MODE B") {
