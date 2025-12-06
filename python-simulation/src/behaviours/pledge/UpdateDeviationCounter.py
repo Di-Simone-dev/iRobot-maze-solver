@@ -1,6 +1,6 @@
 import py_trees
 from helpers import *
-
+from helpers_phys import *
 #STEP 1 DEL PLEDGE
 class UpdateDeviationCounter(py_trees.behaviour.Behaviour):
     def __init__(self, name="Update Counter"):
@@ -10,6 +10,8 @@ class UpdateDeviationCounter(py_trees.behaviour.Behaviour):
         counter = BB.get("pledge_counter") if BB.exists("pledge_counter") else 0
         last_action = BB.get("last_action") if BB.exists("last_action") else ""
         
+        #if(BB.get("pose") == START):
+        step_mapping(BB.get("pose"),BB.get("heading"))
         # Map actions to counter changes
         action_deltas = {
             "Turn Left": -1,
@@ -27,4 +29,6 @@ class UpdateDeviationCounter(py_trees.behaviour.Behaviour):
         BB.set("pledge_counter", counter)
         BB.set("pledge_counter_log", f"Pledge counter: {counter}")
         
+        
+
         return py_trees.common.Status.SUCCESS

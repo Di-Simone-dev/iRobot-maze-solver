@@ -5,6 +5,8 @@ from helpers import *   # import locale da helpers.py
 from config import *    # import locale da config.py
 from gui import *       # import locale da gui.py
 from behaviours import *
+from mapping import *
+
 
 #L'inserimento di randomizzazione all'interno della generazione risulta ideale per:
 #Avere uno start non necessariamente al bordo del labirinto
@@ -22,8 +24,8 @@ BB.set("last_action", "Idle")
 BB.set("visited", {START})            # visited cells set  (Visita dello start)
 BB.set("allow_visit_fallback", False)  # allows moving into visited if no unvisited options exist
 
-#SCELTA ALGORITMO (HARDCODATA PER ORA)
-BB.set("algorithm_mode", "pledge")
+#SCELTA ALGORITMO
+BB.set("algorithm_mode", "pledge")  #algoritmo di default
 BB.set("pledge_counter", 0)
 BB.set("heading_global", BB.get("heading")) #la direzione che vuoi come riferimento, Pledge la richiede per il "tracking dei giri"
 
@@ -93,5 +95,10 @@ if __name__ == "__main__":
     print("Behavior Tree Structure:")
     print(py_trees.display.unicode_tree(root, show_status=True))
     print()
+
+    crea_mappa_quadrata(BB, GRID_SIZE) 
+    stampa_mappa(BB, GRID_SIZE)
+    
+
     gui = MazeGUI(root)
     gui.run()
