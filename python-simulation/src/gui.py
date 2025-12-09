@@ -8,6 +8,7 @@ from config import *
 from helpers import *
 from mazegenerator import *
 import os #per la gestione delle cartelle nei salvataggi dei diagrammi
+from mapping import *
 
 class MazeGUI:
     def __init__(self, root_node):
@@ -123,6 +124,7 @@ class MazeGUI:
         BB.set("visited", {START})
         BB.set("allow_visit_fallback", False)
         BB.set("pledge_counter", 0)
+        crea_mappa_quadrata()
         self.draw_maze()
         self.update_status()
         self.running = False
