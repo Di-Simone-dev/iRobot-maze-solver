@@ -7,6 +7,8 @@ from irobot_create_msgs import DockStatus, KidnapStatus, HazardDetectionVector, 
 
 from custom_msg import Solve, ActuatorMove, ActuatorDock, Stop
 
+from sensor_msgs import PointCloud2
+
 
 class MazeSolverActionServer(Node):
 
@@ -19,6 +21,8 @@ class MazeSolverActionServer(Node):
         self._is_docked = False
         self._is_kidnapped = False
         self._hazard = []
+        self._ir_sensors = []
+        self._lidar_scan = []
 
         # ====================
         # Topic subscription
@@ -51,6 +55,20 @@ class MazeSolverActionServer(Node):
             kidnap_status_qos
         )
         self._kidnap_status_subscription
+
+        # LIDAR SCAN
+        lidar_scan_qos = qos.QoSProfile(
+            depth = 10,
+            reliability = qos.QoSReliabilityPolicy.BEST_EFFORT,
+            durability = qos.QoSDurabilityPolicy.VOLATILE
+        )
+        self._lidar_scan_subscription = self.create_subscription(
+            PointCloud2,
+            'lidar/scan',
+            self.execute_lidar_scan_callback,
+            lidar_scan_qos
+        )
+        self._lidar_scan_subscription
 
         # HAZARD VECTOR
         hazard_detection_qos = qos.QoSProfile(
@@ -130,16 +148,23 @@ class MazeSolverActionServer(Node):
     # KIDNAPP STATUS CALLBACK
     def execute_kidnap_status_callback(self, msg):
         self._is_kidnapped = msg.is_kidnapped
+
+    # LIDAR SCAN CALLBACK
+    def execute_lidar_scan_callback(self, msg):
+        self._lidar_scan.clear()
+        self._lidar_scan = msg
     
     # HAZARD VECTOR CALLBACK
     def execute_hazard_detection_callback(self, msg):
+        self._hazard.clear()
         for hazard in msg.detections:
             self._hazard.append(hazard)
     
     # IR INTENSITY CALLBACK
     def execute_ir_intensity_callback(self, msg):
+        self._ir_sensors.clear()
         for ir in msg.readings:
-            self._hazard.append(ir)
+            self._ir_sensors.append(ir)
 
     
     # ====================
