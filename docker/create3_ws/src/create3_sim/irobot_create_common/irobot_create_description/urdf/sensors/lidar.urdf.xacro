@@ -17,6 +17,12 @@
 
     <!-- Link -->
     <link name="${link_name}">
+      <visual>
+      <geometry>
+        <cylinder radius="0.02" length="0.05"/>
+      </geometry>
+      <material name="red"/>
+    </visual>
       <xacro:inertial_dummy/>
     </link>
 
