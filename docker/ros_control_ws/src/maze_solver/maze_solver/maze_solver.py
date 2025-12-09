@@ -9,6 +9,8 @@ from custom_msg import Solve, ActuatorMove, ActuatorDock, Stop
 
 from sensor_msgs import PointCloud2
 
+from behavioural import BehaviouralTree
+
 
 class MazeSolver(Node):
 
@@ -23,7 +25,7 @@ class MazeSolver(Node):
         self._hazard = []
         self._ir_sensors = []
         self._lidar_scan = []
-        self._algoritm = "";
+        self._algoritm = ""
 
         # ====================
         # Topic subscription
@@ -235,6 +237,7 @@ class MazeSolver(Node):
         #    BEHAVIOUR
         # ====================
         
+        #behav_tree = BehaviouralTree()
 
         # Feedback msg
         feedback_msg = Solve.Feedback()

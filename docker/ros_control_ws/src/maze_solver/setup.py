@@ -24,7 +24,7 @@ setup(
     },
     entry_points={
         'console_scripts': [
-            'maze_solver = maze_solver.maze_solver::main'
+            'maze_solver = maze_solver.maze_solver:main'
         ],
     },
 )
