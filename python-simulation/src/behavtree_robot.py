@@ -44,19 +44,19 @@ def PledgeSubTree(name="Pledge Algorithm"):
 # ADDED: è completo, ma una volta tra tutte quelle che ho provato si è impallato strano per un attimo tipo che ha rieseguito dei percorsi più volte senza senso, e inoltre nei vicoli ciechi da 2 caselle soltanto ogni tanto fa avanti e indietro tipo due volte invece che tornare direttamente indietro
 def TremauxSubTree(name="Tremaux Algorithm"):
     root = Sequence(name, memory=True)
-    exit_or_explore_selector = Selector("Exit or Explore", memory=True)
-    explore_sequence = Sequence("Explore Step", memory = True)
+    #exit_or_explore_selector = Selector("Exit or Explore", memory=True)
+    #explore_sequence = Sequence("Explore Step", memory = True)
     
-    check_exit = CheckExit("Check Exit")
+    #check_exit = CheckExit("Check Exit")
     choose_unvisited_path = ChooseUnvisitedPath()
     mark_path = MarkPath()
     move_forward = MoveForwardTremaux()
     backtrack_if_dead_end = BacktrackIfDeadEnd()
     
-    explore_sequence.add_children([choose_unvisited_path, mark_path, move_forward, backtrack_if_dead_end])
-    exit_or_explore_selector.add_children([check_exit, explore_sequence])
+    root.add_children([choose_unvisited_path, mark_path, move_forward, backtrack_if_dead_end])
+    #exit_or_explore_selector.add_children([check_exit, explore_sequence])
     
-    root.add_children([exit_or_explore_selector])
+    #root.add_children([exit_or_explore_selector])
    
     return root
 
