@@ -2,6 +2,7 @@
 #include "irobot_create_msgs/msg/dock_status.hpp"
 #include "custom_msg/action/actuator_dock.hpp"
 #include "custom_msg/action/actuator_move.hpp"
+#include "custom_msg/action/solve.hpp"
 #include "custom_msg/msg/command.hpp"
 #include "custom_msg/srv/stop.hpp"
 #include "rclcpp_action/rclcpp_action.hpp"
@@ -19,6 +20,12 @@ class Controller : public rclcpp::Node {
                 [this](irobot_create_msgs::msg::DockStatus::SharedPtr msg) {
                     this->dockSubCallback(msg);
                 }
+            );
+
+            // Maze Solver Action Client
+            mazeClient = rclcpp_action::create_client<custom_msg::action::Solve>(
+                this,
+                "actuator_dock"
             );
 
             // Dock Actuator Client
@@ -65,6 +72,9 @@ class Controller : public rclcpp::Node {
         void dockSubCallback(irobot_create_msgs::msg::DockStatus::SharedPtr msg) {
             is_docked = msg->is_docked;
         }
+
+        // Maze Action client
+        rclcpp_action::Client<custom_msg::action::Solve>::SharedPtr mazeClient;
 
         // Dock Actuator client
         rclcpp_action::Client<custom_msg::action::ActuatorDock>::SharedPtr dockClient;
@@ -230,6 +240,98 @@ class Controller : public rclcpp::Node {
             movementClient->async_send_goal(goal_msg, options);
         }
 
+        // Maze solve callback
+        void send_maze_solve_goal(const std::string &algorithm, int* start_position, int* end_position)
+        {
+            using namespace std::placeholders;
+
+            // Controllo input
+            if (algorithm != "PLEDGE" && algorithm != "TREMAUX") {
+                RCLCPP_ERROR(this->get_logger(), "Invalid type sent to maze solver: %s", algorithm.c_str());
+                return;
+            }
+
+            // Attesa server
+            if (!mazeClient->wait_for_action_server()) {
+                RCLCPP_ERROR(this->get_logger(), "ActuatorMovement server not available");
+                return;
+            }
+
+            // Creazione messaggio goal
+            custom_msg::action::Solve::Goal goal_msg;
+            goal_msg.start_position.clear();
+            goal_msg.start_position.push_back(start_position[0]);
+            goal_msg.start_position.push_back(start_position[1]);
+
+            goal_msg.end_position.clear();
+            goal_msg.end_position.push_back(end_position[0]);
+            goal_msg.end_position.push_back(end_position[1]);
+
+            // Opzioni callback
+            rclcpp_action::Client<custom_msg::action::Solve>::SendGoalOptions options;
+
+            // GOAL response
+            options.goal_response_callback =
+                [this, algorithm](auto handle)
+                {
+                    if (!handle) {
+                        RCLCPP_ERROR(this->get_logger(), "[%s] Goal rejected", algorithm.c_str());
+                    } else {
+                        RCLCPP_INFO(this->get_logger(), "[%s] Goal accepted", algorithm.c_str());
+                    }
+                };
+
+            // FEEDBACK
+            options.feedback_callback =
+                [this, algorithm](auto, const std::shared_ptr<const custom_msg::action::Solve::Feedback> feedback)
+                {
+                    const auto &pos = feedback->current_position;
+
+                    // Stampa posizione (ad esempio "x: 1, y: 2")
+                    if (pos.size() >= 2) {
+                        RCLCPP_INFO(this->get_logger(),
+                                    "[%s] Current position: x=%d, y=%d",
+                                    algorithm.c_str(),
+                                    pos[0],
+                                    pos[1]);
+                    } else {
+                        RCLCPP_WARN(this->get_logger(),
+                                    "[%s] Current position vector too short!",
+                                    algorithm.c_str());
+                    }
+                };
+
+            // RISULTATO
+            options.result_callback =
+                [this, algorithm](const rclcpp_action::ClientGoalHandle<custom_msg::action::Solve>::WrappedResult &result)
+                {
+                    switch (result.code) {
+
+                        case rclcpp_action::ResultCode::SUCCEEDED:
+                            if (result.result->status)
+                                RCLCPP_INFO(this->get_logger(), "[%s] COMPLETED SUCCESSFULLY", algorithm.c_str());
+                            else
+                                RCLCPP_WARN(this->get_logger(), "[%s] Completed but status=false", algorithm.c_str());
+                            return;
+
+                        case rclcpp_action::ResultCode::ABORTED:
+                            RCLCPP_ERROR(this->get_logger(), "[%s] ABORTED", algorithm.c_str());
+                            return;
+
+                        case rclcpp_action::ResultCode::CANCELED:
+                            RCLCPP_ERROR(this->get_logger(), "[%s] CANCELED", algorithm.c_str());
+                            return;
+
+                        default:
+                            RCLCPP_ERROR(this->get_logger(), "[%s] UNKNOWN result code", algorithm.c_str());
+                            return;
+                    }
+                };
+
+            // Invio del goal
+            mazeClient->async_send_goal(goal_msg, options);
+        }
+
         // =======================
         // Send Stop / Start Command
         // =======================
@@ -279,7 +381,9 @@ class Controller : public rclcpp::Node {
                 } else if(command == "MODE B") {
                     this->mode = 1;
                 } else if(command == "SOLVE") {
-
+                    int start_pos[2] = {0, 0};
+                    int end_pos[2] = {10, 10};
+                    send_maze_solve_goal(mode == 0 ? "PLEDGE" : "TREMAUX", start_pos, end_pos);
                 } else if(command == "FORWARD") {
                     send_actuator_movement_goal("DISTANCE", 1, 0.5);
                 } else if(command == "BACKWARD") {

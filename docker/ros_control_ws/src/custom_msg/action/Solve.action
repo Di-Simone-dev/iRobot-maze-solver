@@ -2,6 +2,6 @@ string algorithm
 int32[] start_position
 int32[] end_position
 ---
-int32[] current_position
----
 bool status
+---
+int32[] current_position

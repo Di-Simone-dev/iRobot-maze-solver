@@ -1,6 +1,6 @@
 import rclpy
 from rclpy import qos
-from rclpy.action import ActionServer, ActionClient
+from rclpy.action import ActionServer, ActionClient, GoalResponse, CancelResponse
 from rclpy.node import Node
 
 from irobot_create_msgs import DockStatus, KidnapStatus, HazardDetectionVector, IrIntensityVector
@@ -23,6 +23,7 @@ class MazeSolver(Node):
         self._hazard = []
         self._ir_sensors = []
         self._lidar_scan = []
+        self._algoritm = "";
 
         # ====================
         # Topic subscription
@@ -130,7 +131,10 @@ class MazeSolver(Node):
             self,
             Solve,
             'maze_solve',
-            self.execute_solve_callback)
+            execute_callback=self.execute_solve_callback,
+            goal_callback=self.goal_solve_callback,
+            cancel_callback=self.cancel_solve_callback
+        )
     
 
     # ====================
@@ -174,9 +178,62 @@ class MazeSolver(Node):
     # ====================
     # Action Callbacks
     # ====================
+
+    # Decide if accept or refuse the current goal
+    def goal_solve_callback(self, goal_request):
+        if(goal_request.algorithm == "PLEDGE"
+           and goal_request.algorithm == "TREMAUX" 
+           and goal_request.start_position.count() == 2
+           and goal_request.start_position[0] >= 0
+           and goal_request.start_position[1] >= 0
+           and goal_request.end_position.count() == 2
+           and goal_request.end_position[0] >= 0
+           and goal_request.end_position[1] >= 0):
+            
+            return GoalResponse.ACCEPT
+        
+        return GoalResponse.REJECT
+
+    # Decide if the goal is cancellable
+    def cancel_solve_callback(self, goal_handle):
+        self.get_logger().info('Cancel goal requested')
+        return CancelResponse.ACCEPT
+    
+    # Execute the goal
     def execute_solve_callback(self, goal_handle):
         self.get_logger().info('Executing goal...')
 
+        # Setting algoritm type
+        self._algoritm = goal_handle.algoritm
+
+        # Check if docked, then undock
+        if self._is_docked:
+            msg_goal = ActuatorDock.Goal()
+            msg_goal.type = "UNDOCK"
+
+            # Sync undock status
+            future_goal = self._actuator_dock_action_client.send_goal_async(msg_goal)
+            rclpy.spin_until_future_complete(self, future_goal)
+
+            goal_handle = future_goal.result()
+
+            if not goal_handle.accepted:
+                self.get_logger().warn("Goal rifiutato")
+                return
+
+            self.get_logger().info("Goal accettato")
+
+            future_result = goal_handle.get_result_async()
+            rclpy.spin_until_future_complete(self, future_result)
+
+            if not future_result.result().result.status:
+               self.get_logger().warn("Goal rifiutato")
+               return
+        
+
+        # ====================
+        #    BEHAVIOUR
+        # ====================
         
 
         # Feedback msg
@@ -197,7 +254,7 @@ class MazeSolver(Node):
 def main(args=None):
     rclpy.init(args=args)
 
-    maze_solver_action_server = MazeSolverActionServer()
+    maze_solver_action_server = MazeSolver()
 
     rclpy.spin(maze_solver_action_server)
 
