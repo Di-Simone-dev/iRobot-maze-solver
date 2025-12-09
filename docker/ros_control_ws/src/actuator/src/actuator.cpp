@@ -304,12 +304,12 @@ private:
         
         // Sending request
         eStopClient->async_send_request(request,
-        [this](rclcpp::Client<irobot_create_msgs::srv::EStop>::SharedFuture future_response)
-        {
-            auto response = future_response.get();
-            RCLCPP_INFO(this->get_logger(), "Response: success=%s", response->success ? "true" : "false");
-        }
-);
+                                    [this](rclcpp::Client<irobot_create_msgs::srv::EStop>::SharedFuture future_response)
+            {
+                auto response = future_response.get();
+                RCLCPP_INFO(this->get_logger(), "Response: success=%s", response->success ? "true" : "false");
+            }
+        );
     };
 
 
@@ -533,9 +533,17 @@ private:
         }
 
         // Publish final result
-        result->status = (drive_status == 0);
-        if (result->status) goal_handle->succeed(result);
-        else goal_handle->abort(result);
+        int status = drive_status.load();
+        if (status == static_cast<int>(rclcpp_action::ResultCode::SUCCEEDED)) {
+            result->status = true;
+            goal_handle->succeed(result);
+        } else if (status == static_cast<int>(rclcpp_action::ResultCode::CANCELED)) {
+            result->status = false;
+            goal_handle->canceled(result);
+        } else {
+            result->status = false;
+            goal_handle->abort(result);
+        }
     }
 
     // ---------------------------------------------
@@ -582,9 +590,17 @@ private:
         }
 
         // Publish final result
-        result->status = (angle_status == 0);
-        if (result->status) goal_handle->succeed(result);
-        else goal_handle->abort(result);
+        int status = angle_status.load();
+        if (status == static_cast<int>(rclcpp_action::ResultCode::SUCCEEDED)) {
+            result->status = true;
+            goal_handle->succeed(result);
+        } else if (status == static_cast<int>(rclcpp_action::ResultCode::CANCELED)) {
+            result->status = false;
+            goal_handle->canceled(result);
+        } else {
+            result->status = false;
+            goal_handle->abort(result);
+        }
     }
 };
 

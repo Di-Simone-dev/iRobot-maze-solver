@@ -13,8 +13,8 @@ setup(
     ],
     install_requires=['setuptools'],
     zip_safe=True,
-    maintainer='lorenzo',
-    maintainer_email='lorenzo.dangelo.mail@gmail.com',
+    maintainer='root',
+    maintainer_email='root@root.com',
     description='TODO: Package description',
     license='Apache-2.0',
     extras_require={
@@ -24,6 +24,7 @@ setup(
     },
     entry_points={
         'console_scripts': [
+            'maze_solver = maze_solver.maze_solver::main'
         ],
     },
 )

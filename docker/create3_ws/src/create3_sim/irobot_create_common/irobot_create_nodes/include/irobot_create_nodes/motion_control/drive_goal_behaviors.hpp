@@ -259,7 +259,7 @@ private:
   const float converge_angle_dist_ {M_PI / 360.0f};
   const float min_percent_ {0.2};
   const float min_controllable_ {0.01};
-  const rclcpp::Duration report_feedback_interval_ {std::chrono::seconds(3)};
+  const rclcpp::Duration report_feedback_interval_ {std::chrono::milliseconds(500)};
 };
 
 /**
@@ -297,7 +297,7 @@ private:
   const float slow_translate_dist_ {0.1};
   const float converge_translate_dist_ {0.005};
   const float min_translate_vel_ {0.05};
-  const rclcpp::Duration report_feedback_interval_ {std::chrono::seconds(3)};
+  const rclcpp::Duration report_feedback_interval_ {std::chrono::milliseconds(500)};
 };
 
 /**
@@ -334,7 +334,7 @@ private:
   const float slow_angle_dist_ {0.6};
   const float converge_angle_dist_ {M_PI / 360.0f};
   const float min_angular_vel_ {0.1};
-  const rclcpp::Duration report_feedback_interval_ {std::chrono::seconds(3)};
+  const rclcpp::Duration report_feedback_interval_ {std::chrono::milliseconds(500)};
 };
 /**
  * @brief This class manages the NavigateToPosition action server.

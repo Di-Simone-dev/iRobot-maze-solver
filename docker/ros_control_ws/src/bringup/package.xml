@@ -4,7 +4,7 @@
   <name>bringup</name>
   <version>0.0.0</version>
   <description>TODO: Package description</description>
-  <maintainer email="lorenzo.dangelo.mail@gmail.com">lorenzo</maintainer>
+  <maintainer email="root@root.com">root</maintainer>
   <license>TODO: License declaration</license>
 
   <test_depend>ament_copyright</test_depend>
