@@ -10,10 +10,10 @@ from custom_msg import Solve, ActuatorMove, ActuatorDock, Stop
 from sensor_msgs import PointCloud2
 
 
-class MazeSolverActionServer(Node):
+class MazeSolver(Node):
 
     def __init__(self):
-        super().__init__('maze_solver_action_server')
+        super().__init__('maze_solver')
 
         # ====================
         # States
@@ -176,6 +176,8 @@ class MazeSolverActionServer(Node):
     # ====================
     def execute_solve_callback(self, goal_handle):
         self.get_logger().info('Executing goal...')
+
+        
 
         # Feedback msg
         feedback_msg = Solve.Feedback()
