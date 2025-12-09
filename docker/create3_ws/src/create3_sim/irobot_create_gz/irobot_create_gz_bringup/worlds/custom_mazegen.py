@@ -15,6 +15,8 @@ START = (1, 1)  # RANDOMIZZABILE idealmente
 GOAL = (GRID_SIZE - 2, GRID_SIZE - 2)
 # CONFIGURAZIONI DI GAZEBO
 
+WALL_SIZE = '1 1 0.25'  # dimensione muri ostacoli
+Z_OFFSET = '-0.5'  # offset verticale muri ostacoli
 PLANE = '100 100'  # lati del piano
 
 def prettify_xml(elem):
@@ -44,8 +46,8 @@ def add_obstacle_wall(obstacle_walls, x, y):
     """
     wall_num = len(obstacle_walls) + 1
     wall_name = f'wall{wall_num}'
-    pose = f'{x-SHIFT_AMOUNT} {y-SHIFT_AMOUNT} 0 0 0 0'
-    size = '1 1 1'
+    pose = f'{x-SHIFT_AMOUNT} {y-SHIFT_AMOUNT} {Z_OFFSET} 0 0 0'
+    size = WALL_SIZE
     
     obstacle_walls.append((wall_name, pose, size))
     return wall_name
