@@ -5,25 +5,42 @@ from helpers import *
 class FollowWall(py_trees.behaviour.Behaviour):
     def __init__(self, name="Follow Wall"):
         super().__init__(name)
+        
+        self.BB = self.attach_blackboard_client(name=self.name)
+        self.BB.register_key(key="current_position", access=py_trees.common.Access.WRITE)
+        self.BB.register_key(key="goal_position", access=py_trees.common.Access.READ)
+        self.BB.register_key(key="paused", access=py_trees.common.Access.READ)
+        self.BB.register_key(key="kidnapped", access=py_trees.common.Access.READ)
+        self.BB.register_key(key="hazard", access=py_trees.common.Access.READ)
+        self.BB.register_key(key="ir_sensors", access=py_trees.common.Access.READ)
+        self.BB.register_key(key="lidar_scan", access=py_trees.common.Access.READ)
+        self.BB.register_key(key="heading", access=py_trees.common.Access.WRITE)
+        self.BB.register_key(key="reached_exit", access=py_trees.common.Access.WRITE)
+        self.BB.register_key(key="last_action", access=py_trees.common.Access.WRITE)
+        self.BB.register_key(key="visited", access=py_trees.common.Access.WRITE)
+        self.BB.register_key(key="allow_visit_fallback", access=py_trees.common.Access.WRITE)
+        self.BB.register_key(key="algorithm_mode", access=py_trees.common.Access.READ)
+        self.BB.register_key(key="pledge_counter", access=py_trees.common.Access.WRITE)
+        self.BB.register_key(key="heading_global", access=py_trees.common.Access.WRITE)
 
     def update(self):
-        pose = BB.get("pose")
-        heading = BB.get("heading")
-        counter = BB.get("pledge_counter")
-        last_action = BB.get("last_action")
+        current_pos = self.BB.get("current_position")
+        heading = self.BB.get("heading")
+        counter = self.BB.get("pledge_counter")
+        last_action = self.BB.get("last_action")
         
-        forward = forward_cell(pose, heading)
+        forward = forward_cell(current_pos, heading)
         
         # Check success condition: aligned with global heading and path is free
-        if counter == 0 and heading == BB.get("heading_global") and is_free(forward):
+        if counter == 0 and heading == self.BB.get("heading_global") and is_free(forward):
             return py_trees.common.Status.SUCCESS
         
         # Get all adjacent cells
-        left = left_cell(pose, heading)
-        right = right_cell(pose, heading)
-        back = backward_cell(pose, heading)
-        backleft = backleft_cell(pose, heading)
-        backright = backright_cell(pose, heading)
+        left = left_cell(current_pos, heading)
+        right = right_cell(current_pos, heading)
+        back = backward_cell(current_pos, heading)
+        backleft = backleft_cell(current_pos, heading)
+        backright = backright_cell(current_pos, heading)
         
         # Debug prints for decision points
         if "Turn" not in last_action and is_free(back):
@@ -41,11 +58,11 @@ class FollowWall(py_trees.behaviour.Behaviour):
         )
         
         if action == "FAILURE":
-            BB.set("last_action", "Wall ended → no free path")
+            self.BB.set("last_action", "Wall ended → no free path")
             return py_trees.common.Status.FAILURE
         
-        BB.set("heading", new_heading)
-        BB.set("last_action", action)
+        self.BB.set("heading", new_heading)
+        self.BB.set("last_action", action)
         
         # Return SUCCESS if moving forward (no heading change), FAILURE if turning
         return py_trees.common.Status.SUCCESS if new_heading == heading else py_trees.common.Status.FAILURE

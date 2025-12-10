@@ -21,11 +21,12 @@ class MazeSolver(Node):
         # States
         # ====================
         self._is_docked = False
-        self._is_kidnapped = False
+        self._is_kidnapped = [False]
         self._hazard = []
         self._ir_sensors = []
         self._lidar_scan = []
-        self._algoritm = ""
+        self._algorithm = ""
+        self._is_paused = [False]
 
         # ====================
         # Topic subscription
@@ -151,9 +152,12 @@ class MazeSolver(Node):
     def execute_dock_status_callback(self, msg):
         self._is_docked = msg.is_docked
 
-    # KIDNAPP STATUS CALLBACK
+    # KIDNAP STATUS CALLBACK
     def execute_kidnap_status_callback(self, msg):
-        self._is_kidnapped = msg.is_kidnapped
+        self._is_kidnapped = [msg.is_kidnapped]
+        
+    def execute_pause_status_callback(self, msg):
+        self._is_paused = [msg.is_paused]
 
     # LIDAR SCAN CALLBACK
     def execute_lidar_scan_callback(self, msg):
@@ -206,7 +210,7 @@ class MazeSolver(Node):
         self.get_logger().info('Executing goal...')
 
         # Setting algoritm type
-        self._algoritm = goal_handle.algoritm
+        self._algorithm = goal_handle.algorithm
 
         # Check if docked, then undock
         if self._is_docked:
@@ -237,7 +241,7 @@ class MazeSolver(Node):
         #    BEHAVIOUR
         # ====================
         
-        #behav_tree = BehaviouralTree()
+        behav_tree = BehaviouralTree(goal_handle, _is_paused, _is_kidnapped, _hazard, _ir_sensors, _lidar_scan)
 
         # Feedback msg
         feedback_msg = Solve.Feedback()

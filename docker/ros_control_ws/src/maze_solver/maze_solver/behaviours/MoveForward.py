@@ -11,28 +11,37 @@ class MoveForward(py_trees.behaviour.Behaviour):
     """
     def __init__(self, name="Move Forward"):
         super().__init__(name)
+        self.BB = self.attach_blackboard_client(name=self.name)
+        self.BB.register_key(key="reached_exit", access=py_trees.common.Access.WRITE)
+        self.BB.register_key(key="current_position", access=py_trees.common.Access.WRITE)
+        self.BB.register_key(key="heading", access=py_trees.common.Access.WRITE)
+        self.BB.register_key(key="last_action", access=py_trees.common.Access.WRITE)
+        self.BB.register_key(key="visited", access=py_trees.common.Access.WRITE)
+        self.BB.register_key(key="allow_visit_fallback", access=py_trees.common.Access.WRITE)
+        self.BB.register_key(key="goal_position", access=py_trees.common.Access.READ)
+        
 
     def update(self):
-        if BB.get("reached_exit"):
+        if self.BB.get("reached_exit"):
             return py_trees.common.Status.SUCCESS
 
         #print("MOVIMENTO")
-        pose = BB.get("pose")
-        heading = BB.get("heading")
-        target = forward_cell(pose, heading)
+        current_position = self.BB.get("current_position")
+        heading = self.BB.get("heading")
+        target = forward_cell(current_position, heading)
 
 
         if not is_free(target):
-            BB.set("last_action", f"Blocked forward at {target}")
+            self.BB.set("last_action", f"Blocked forward at {target}")
             
             return py_trees.common.Status.FAILURE
 
-        visited = BB.get("visited")
-        allow_visit_fallback = BB.get("allow_visit_fallback")
+        visited = self.BB.get("visited")
+        allow_visit_fallback = self.BB.get("allow_visit_fallback")
 
 
         #TEST
-        BB.set("allow_visit_fallback", False)  # reset after movement
+        self.BB.set("allow_visit_fallback", False)  # reset after movement
         # If target visited and no fallback allowed, fail to re-choose direction
         """ if (target in visited) and not allow_visit_fallback:
             #print("visita riuscita")
@@ -40,12 +49,12 @@ class MoveForward(py_trees.behaviour.Behaviour):
             return py_trees.common.Status.FAILURE """
 
         # Move
-        BB.set("pose", target)  #MOVIMENTO EFFETTIVO DEL ROBOT
-        visited.add(target)        
-        BB.set("visited", visited)
-        BB.set("last_action", f"Move to {target}")
-        BB.set("allow_visit_fallback", False)  # reset after movement
+        self.BB.set("current_position", target)  #MOVIMENTO EFFETTIVO DEL ROBOT
+        visited.add(target)
+        self.BB.set("visited", visited)
+        self.BB.set("last_action", f"Move to {target}")
+        self.BB.set("allow_visit_fallback", False)  # reset after movement
 
-        if target == BB.get("goal"):
-            BB.set("reached_exit", True)
+        if target == self.BB.get("goal_position"):
+            self.BB.set("reached_exit", True)
         return Status.SUCCESS
