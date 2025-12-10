@@ -33,7 +33,6 @@ class MoveForward(py_trees.behaviour.Behaviour):
 
         if not is_free(target):
             self.BB.set("last_action", f"Blocked forward at {target}")
-            
             return py_trees.common.Status.FAILURE
 
         visited = self.BB.get("visited")

@@ -51,9 +51,9 @@ def TremauxSubTree(name="Tremaux Algorithm"):
     choose_unvisited_path = ChooseUnvisitedPath()
     mark_path = MarkPath()
     move_forward = MoveForwardTremaux()
-    backtrack_if_dead_end = BacktrackIfDeadEnd()
+    #backtrack_if_dead_end = BacktrackIfDeadEnd()
     
-    root.add_children([choose_unvisited_path, mark_path, move_forward, backtrack_if_dead_end])
+    root.add_children([choose_unvisited_path, mark_path, move_forward])#, backtrack_if_dead_end])
     #exit_or_explore_selector.add_children([check_exit, explore_sequence])
     
     #root.add_children([exit_or_explore_selector])

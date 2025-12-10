@@ -38,6 +38,7 @@ class BehaviouralTree:
         BB.register_key(key="heading_global", access=py_trees.common.Access.WRITE)
         BB.register_key(key="chosen_direction", access=py_trees.common.Access.WRITE)
         BB.register_key(key="map_size", access=py_trees.common.Access.READ)
+        BB.register_key(key="busy", access=py_trees.common.Access.WRITE)
         
         BB.current_position = goal_handle.start_position
         BB.goal_position = goal_handle.end_position
@@ -59,6 +60,7 @@ class BehaviouralTree:
         BB.pledge_counter = 0
         BB.heading_global = BB.get("heading") #la direzione che vuoi come riferimento, Pledge la richiede per il "tracking dei giri"
         BB.map_size = 20
+        BB.busy = False
         
         map = init_map(BB.get("map_size"))
         BB.set("map", map)
@@ -91,9 +93,9 @@ class BehaviouralTree:
         choose_unvisited_path = ChooseUnvisitedPath()
         mark_path = MarkPath()
         move_forward = MoveForwardTremaux()
-        backtrack_if_dead_end = BacktrackIfDeadEnd()
+        #backtrack_if_dead_end = BacktrackIfDeadEnd()
         
-        root.add_children([choose_unvisited_path, mark_path, move_forward, backtrack_if_dead_end])
+        root.add_children([choose_unvisited_path, mark_path, move_forward])#, backtrack_if_dead_end])
     
         return root
 
@@ -103,6 +105,14 @@ class BehaviouralTree:
         is_paused_sel = Selector("Is paused?", memory=True)
         is_paused = IsPaused()
         
+        kidnap_sel = Selector("Kidnap selector", memory=True)
+        check_kidnap = CheckKidnap()
+        
+        hazards_sel = Selector("Hazard selector", memory=True)
+        check_hazards = CheckHazards()
+        
+        busy_sel = Selector("Busy selector", memory=True)
+        is_busy = IsBusy()
         
         pledge_branch_sequence = Sequence("Pledge Branch", memory=True)
         algorithm_selector_P = AlgorithmSelector("Is Pledge", "pledge")
@@ -119,7 +129,10 @@ class BehaviouralTree:
         
         exit_or_explore_selector = Selector("Exit or Explore", memory=True)
         
-        is_paused_sel.add_children[is_paused, exit_or_explore_selector]
+        is_paused_sel.add_children[is_paused, kidnap_sel]
+        kidnap_sel.add_children[is_kidnapped, hazards_sel]
+        hazards_sel.add_children[check_hazards, busy_sel]
+        busy_sel.add_children[is_busy, exit_or_explore_selector]
         
         root.add_children([is_paused_sel])
         check_exit = CheckExit()

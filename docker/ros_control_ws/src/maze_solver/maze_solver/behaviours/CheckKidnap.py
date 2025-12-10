@@ -1,17 +1,15 @@
 import py_trees
 from helpers import *
-import sys
 
-class IsPaused(py_trees.behaviour.Behaviour):
+class CheckKidnap(py_trees.behaviour.Behaviour):
 
-    def __init__(self, name="Is Paused"):
+    def __init__(self, name="Check Kidnap"):
         super().__init__(name)
         self.BB = self.attach_blackboard_client(name=self.name)
-        self.BB.register_key(key="paused", access=py_trees.common.Access.READ)
+        self.BB.register_key(key="is_kidnapped", access=py_trees.common.Access.READ)
         
 
     def update(self):
-        if BB.get("paused"):
-            sys.sleep(50)
+        if BB.get("is_kidnapped"):
             return py_trees.common.Status.FAILURE
         return py_trees.common.Status.SUCCESS
