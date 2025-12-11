@@ -1,7 +1,7 @@
 import py_trees
 from py_trees.behaviour import Behaviour
 from py_trees.common import Status
-from helpers import *
+from maze_solver.helpers import *
 
 class MarkPath(Behaviour):
     def __init__(self, name="Mark Path"):

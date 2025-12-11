@@ -3,8 +3,8 @@
 
   <xacro:macro name="lidar_2d"
                params="name gazebo namespace parent:=base_link
-                       update_rate:=40.0 h_samples:=360 fov:=${2*pi}
-                       min_range:=0.02 max_range:=3.5 visualize:=true *origin">
+                       update_rate:=2.0 h_samples:=80 fov:=${pi}
+                       min_range:=0.02 max_range:=5.0 visualize:=true *origin">
 
     <xacro:property name="link_name" value="${name}"/>
 

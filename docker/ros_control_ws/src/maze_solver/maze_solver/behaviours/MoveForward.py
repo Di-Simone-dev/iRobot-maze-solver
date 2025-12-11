@@ -1,6 +1,6 @@
 import py_trees
 from py_trees.common import Status
-from helpers import *
+from maze_solver.helpers import *
 
 class MoveForward(py_trees.behaviour.Behaviour):
     """
@@ -31,7 +31,7 @@ class MoveForward(py_trees.behaviour.Behaviour):
         target = forward_cell(current_position, heading)
 
 
-        if not is_free(target):
+        if not is_free(self, target):
             self.BB.set("last_action", f"Blocked forward at {target}")
             return py_trees.common.Status.FAILURE
 

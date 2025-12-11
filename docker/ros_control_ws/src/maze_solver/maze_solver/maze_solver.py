@@ -3,13 +3,14 @@ from rclpy import qos
 from rclpy.action import ActionServer, ActionClient, GoalResponse, CancelResponse
 from rclpy.node import Node
 
-from irobot_create_msgs import DockStatus, KidnapStatus, HazardDetectionVector, IrIntensityVector
+from irobot_create_msgs.msg import DockStatus, KidnapStatus, HazardDetectionVector, IrIntensityVector
 
-from custom_msg import Solve, ActuatorMove, ActuatorDock, Stop
+from custom_msg.action import Solve, ActuatorMove, ActuatorDock
+from custom_msg.srv import Stop
 
-from sensor_msgs import PointCloud2
+from sensor_msgs.msg import LaserScan
 
-from behavioural import BehaviouralTree
+from maze_solver.behavioural import BehaviouralTree
 
 
 class MazeSolver(Node):
@@ -67,7 +68,7 @@ class MazeSolver(Node):
             durability = qos.QoSDurabilityPolicy.VOLATILE
         )
         self._lidar_scan_subscription = self.create_subscription(
-            PointCloud2,
+            LaserScan,
             'lidar/scan',
             self.execute_lidar_scan_callback,
             lidar_scan_qos
@@ -161,7 +162,6 @@ class MazeSolver(Node):
 
     # LIDAR SCAN CALLBACK
     def execute_lidar_scan_callback(self, msg):
-        self._lidar_scan.clear()
         self._lidar_scan = msg
     
     # HAZARD VECTOR CALLBACK
@@ -187,16 +187,18 @@ class MazeSolver(Node):
 
     # Decide if accept or refuse the current goal
     def goal_solve_callback(self, goal_request):
-        if(goal_request.algorithm == "PLEDGE"
-           and goal_request.algorithm == "TREMAUX" 
-           and goal_request.start_position.count() == 2
-           and goal_request.start_position[0] >= 0
-           and goal_request.start_position[1] >= 0
-           and goal_request.end_position.count() == 2
-           and goal_request.end_position[0] >= 0
-           and goal_request.end_position[1] >= 0):
+        if (goal_request.algorithm in ("PLEDGE", "TREMAUX") and
+            len(goal_request.start_position) == 2 and
+            min(goal_request.start_position) >= 0 and
+            len(goal_request.end_position) == 2 and
+            min(goal_request.end_position) >= 0):
             
             return GoalResponse.ACCEPT
+        
+        self.get_logger().info(f"Start: {goal_request.start_position}")
+        self.get_logger().info(f"End: {goal_request.end_position}")
+        self.get_logger().info(f"Algorithm: {goal_request.algorithm}")
+
         
         return GoalResponse.REJECT
 
@@ -210,7 +212,7 @@ class MazeSolver(Node):
         self.get_logger().info('Executing goal...')
 
         # Setting algoritm type
-        self._algorithm = goal_handle.algorithm
+        self._algorithm = goal_handle.request.algorithm
 
         # Check if docked, then undock
         if self._is_docked:
@@ -221,15 +223,15 @@ class MazeSolver(Node):
             future_goal = self._actuator_dock_action_client.send_goal_async(msg_goal)
             rclpy.spin_until_future_complete(self, future_goal)
 
-            goal_handle = future_goal.result()
+            goal_handle_undock = future_goal.result()
 
-            if not goal_handle.accepted:
+            if not goal_handle_undock.accepted:
                 self.get_logger().warn("Goal rifiutato")
                 return
 
             self.get_logger().info("Goal accettato")
 
-            future_result = goal_handle.get_result_async()
+            future_result = goal_handle_undock.get_result_async()
             rclpy.spin_until_future_complete(self, future_result)
 
             if not future_result.result().result.status:
@@ -241,14 +243,17 @@ class MazeSolver(Node):
         #    BEHAVIOUR
         # ====================
         
-        behav_tree = BehaviouralTree(goal_handle, _is_paused, _is_kidnapped, _hazard, _ir_sensors, _lidar_scan)
-
-        # Feedback msg
-        feedback_msg = Solve.Feedback()
-        feedback_msg.current_position = [0, 0]
-
-        # Publishing feedback msg
-        goal_handle.publish_feedback(feedback_msg)
+        behav_tree = BehaviouralTree(goal_handle,
+                                     self._is_paused,
+                                     self._is_kidnapped,
+                                     self._hazard,
+                                     self._ir_sensors,
+                                     self._lidar_scan,
+                                     self._actuator_movement_action_client,
+                                     self.get_clock(),
+                                     self.get_logger())
+        
+        behav_tree.loop()
 
         # Publishing goal status
         goal_handle.succeed()

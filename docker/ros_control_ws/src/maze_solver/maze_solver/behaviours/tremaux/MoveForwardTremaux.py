@@ -1,6 +1,9 @@
+import py_trees
 from py_trees.behaviour import Behaviour
 from py_trees.common import Status
-from helpers import *
+from maze_solver.helpers import *
+from custom_msg.action import ActuatorMove
+from maze_solver import config
 
 class MoveForwardTremaux(Behaviour):
     def __init__(self, name="Move Forward Trémaux"):
@@ -21,6 +24,8 @@ class MoveForwardTremaux(Behaviour):
         self.BB.register_key(key="algorithm_mode", access=py_trees.common.Access.READ)
         self.BB.register_key(key="pledge_counter", access=py_trees.common.Access.WRITE)
         self.BB.register_key(key="heading_global", access=py_trees.common.Access.WRITE)
+        self.BB.register_key(key="busy", access=py_trees.common.Access.WRITE)
+        self.BB.register_key(key="actuator_movement_action_client", access=py_trees.common.Access.READ)
 
     def update(self):
         if self.BB.get("reached_exit"):
@@ -31,20 +36,24 @@ class MoveForwardTremaux(Behaviour):
         
         self.BB.set("busy", True)
         
-        if chosen_dir is None:
-            return Status.FAILURE
-        
         target = forward_cell(current_position, chosen_dir)
-        
-        if not is_free(target):
-            return Status.FAILURE
         
         visits_key = f"visits_{current_position}"
         visits = self.BB.get(visits_key) if self.BB.exists(visits_key) else 0
         self.BB.set(visits_key, visits + 1)
         
         self.BB.set("current_position", target)
-        self.BB.set("heading", chosen_dir)
+
+        # Movement
+        goal_msg = ActuatorMove.Goal()
+        goal_msg.type = "Distance"
+        goal_msg.distance = config.MOVEMENT_DISTANCE
+        goal_msg.max_speed = config.MOVEMENT_SPEED
+        actuator_movement_action_client = self.BB.get("actuator_movement_action_client")
+        future = actuator_movement_action_client.send_goal_async(goal_msg)
+        future.add_done_callback(self.end_movement_callback)
+
+
         self.BB.set("last_action", f"Move {chosen_dir}° → {target}")
         visited = self.BB.get("visited")
         visited.add(target)
@@ -54,3 +63,6 @@ class MoveForwardTremaux(Behaviour):
             self.BB.set("reached_exit", True)
         
         return Status.SUCCESS
+    
+    def end_movement_callback(self, future):
+        self.BB.set("busy", False)

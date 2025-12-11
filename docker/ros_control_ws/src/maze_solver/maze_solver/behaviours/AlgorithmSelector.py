@@ -1,8 +1,7 @@
-from py_trees.behaviour import Behaviour
-from helpers import *
-from py_trees.common import Status
+import py_trees
+from maze_solver.helpers import *
 
-class AlgorithmSelector(Behaviour):
+class AlgorithmSelector(py_trees.behaviour.Behaviour):
     def __init__(self, name, mode):
         super().__init__(name)
         self.mode = mode
@@ -23,9 +22,14 @@ class AlgorithmSelector(Behaviour):
         self.BB.register_key(key="algorithm_mode", access=py_trees.common.Access.READ)
         self.BB.register_key(key="pledge_counter", access=py_trees.common.Access.WRITE)
         self.BB.register_key(key="heading_global", access=py_trees.common.Access.WRITE)
+        self.BB.register_key(key="logger", access=py_trees.common.Access.READ)
 
     def update(self):
+        self.BB.get("logger").info(self.BB.get("algorithm_mode"))
+        self.BB.get("logger").info(self.mode)
         if self.BB.get("algorithm_mode") == self.mode:
-            return Status.SUCCESS
+            self.BB.get("logger").info("Algorithm is right")
+            return py_trees.common.Status.SUCCESS
         else:
-            return Status.FAILURE
+            self.BB.get("logger").info("Algorithm is NOT right")
+            return py_trees.common.Status.FAILURE

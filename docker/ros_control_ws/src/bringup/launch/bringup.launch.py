@@ -23,7 +23,18 @@ def generate_launch_description():
         arguments=['--ros-args', '--log-level', 'INFO']
     )
 
+    maze_solver = Node(
+        package='maze_solver',
+        executable='maze_solver',
+        name='maze_solver',
+        output='screen',
+        emulate_tty=True,
+        parameters=[{'use_sim_time': True}],
+        arguments=['--ros-args', '--log-level', 'INFO']
+    )
+
     return LaunchDescription([
         planner,
-        actuator
+        actuator,
+        maze_solver
     ])

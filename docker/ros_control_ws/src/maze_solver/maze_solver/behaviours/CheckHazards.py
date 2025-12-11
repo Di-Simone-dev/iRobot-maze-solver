@@ -1,5 +1,5 @@
 import py_trees
-from helpers import *
+from maze_solver.helpers import *
 
 class CheckHazards(py_trees.behaviour.Behaviour):
 
@@ -7,9 +7,12 @@ class CheckHazards(py_trees.behaviour.Behaviour):
         super().__init__(name)
         self.BB = self.attach_blackboard_client(name=self.name)
         self.BB.register_key(key="hazards", access=py_trees.common.Access.READ)
+        self.BB.register_key(key="logger", access=py_trees.common.Access.READ)
         
 
     def update(self):
-        if len(BB.get("hazards")) > 0:
-            return py_trees.common.Status.FAILURE
-        return py_trees.common.Status.SUCCESS
+        if len(self.BB.get("hazards")) > 0:
+            self.BB.get("logger").info("System has hazards!")
+            return py_trees.common.Status.SUCCESS
+        self.BB.get("logger").info("System has NO hazards!")
+        return py_trees.common.Status.FAILURE

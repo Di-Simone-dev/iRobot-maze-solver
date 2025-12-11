@@ -1,5 +1,5 @@
 import py_trees
-from helpers import *
+from maze_solver.helpers import *
 
 class ChooseDirection(py_trees.behaviour.Behaviour):
 
@@ -17,11 +17,11 @@ class ChooseDirection(py_trees.behaviour.Behaviour):
         heading = self.BB.get("heading")
         visited = self.BB.get("visited")
 
-        candidates = neighbor_cells_with_headings(pose, heading)
+        candidates = neighbor_cells_with_headings(current_position, heading)
 
         # Try free & unvisited
         for h, cell in candidates:
-            if is_free(cell) and (cell not in visited):
+            if is_free(self, cell) and (cell not in visited):
                 self.BB.set("heading", h)
                 self.BB.set("allow_visit_fallback", False)
                 self.B.set("last_action", f"Choose heading {h}° → unvisited {cell}")
@@ -29,7 +29,7 @@ class ChooseDirection(py_trees.behaviour.Behaviour):
 
         # Fallback: any free (visited allowed)
         for h, cell in candidates:
-            if is_free(cell):
+            if is_free(self, cell):
                 self.BB.set("heading", h)
                 self.BB.set("allow_visit_fallback", True)  # permit moving into visited to avoid deadlock
                 self.BB.set("last_action", f"Choose heading {h}° → free {cell} (visited fallback)")

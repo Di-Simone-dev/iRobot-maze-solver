@@ -2,6 +2,8 @@
 # Helpers
 # ----------------------------
 
+from maze_solver import config
+
 def left_cell(current_position, heading):
     return forward_cell(current_position, (heading - 90) % 360)
 
@@ -39,10 +41,10 @@ def backright_cell(current_position, heading):
 
 def in_bounds(cell):
     r, c = cell
-    return 0 <= r < GRID_SIZE and 0 <= c < GRID_SIZE
+    return 0 <= r < config.GRID_SIZE and 0 <= c < config.GRID_SIZE
 
-def is_free(cell):
-    return in_bounds(cell) and (cell not in BB.get("maze_walls"))
+def is_free(self, cell):
+    return in_bounds(cell) and (cell not in self.BB.get("maze_walls"))
 
 def left_of(heading):    return (heading - 90) % 360
 def right_of(heading):   return (heading + 90) % 360

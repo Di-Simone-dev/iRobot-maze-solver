@@ -1,6 +1,6 @@
 import py_trees
-from helpers import *
-import sys
+from maze_solver.helpers import *
+from time import sleep
 
 class IsPaused(py_trees.behaviour.Behaviour):
 
@@ -8,10 +8,13 @@ class IsPaused(py_trees.behaviour.Behaviour):
         super().__init__(name)
         self.BB = self.attach_blackboard_client(name=self.name)
         self.BB.register_key(key="paused", access=py_trees.common.Access.READ)
+        self.BB.register_key(key="logger", access=py_trees.common.Access.READ)
         
 
     def update(self):
-        if BB.get("paused"):
-            sys.sleep(50)
-            return py_trees.common.Status.FAILURE
-        return py_trees.common.Status.SUCCESS
+        if self.BB.get("paused")[0]:
+            sleep(0.050)
+            self.BB.get("logger").info("System is paused!")
+            return py_trees.common.Status.SUCCESS
+        self.BB.get("logger").info("System is NOT paused!")
+        return py_trees.common.Status.FAILURE

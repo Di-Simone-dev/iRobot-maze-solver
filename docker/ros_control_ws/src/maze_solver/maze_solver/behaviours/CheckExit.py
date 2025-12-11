@@ -1,5 +1,5 @@
 import py_trees
-from helpers import *
+from maze_solver.helpers import *
 
 #Si controlla di essere arrivati all'uscita
 class CheckExit(py_trees.behaviour.Behaviour):
@@ -22,10 +22,14 @@ class CheckExit(py_trees.behaviour.Behaviour):
         self.BB.register_key(key="algorithm_mode", access=py_trees.common.Access.READ)
         self.BB.register_key(key="pledge_counter", access=py_trees.common.Access.WRITE)
         self.BB.register_key(key="heading_global", access=py_trees.common.Access.WRITE)
+        self.BB.register_key(key="logger", access=py_trees.common.Access.READ)
 
     def update(self):
         if self.BB.get("current_position") == self.BB.get("goal_position"):
             self.BB.set("reached_exit", True)
             self.BB.set("last_action", "Reached Exit!")
+            self.BB.get("logger").info("Exit reached!")
             return py_trees.common.Status.SUCCESS
+        
+        self.BB.get("logger").info("Exit NOT reached!")
         return py_trees.common.Status.FAILURE

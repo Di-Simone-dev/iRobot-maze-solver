@@ -1,5 +1,5 @@
 import py_trees
-from helpers import *
+from maze_solver.helpers import *
 
 #STEP 2 DEL PLEDGE
 class FollowWall(py_trees.behaviour.Behaviour):

@@ -25,7 +25,7 @@ class Controller : public rclcpp::Node {
             // Maze Solver Action Client
             mazeClient = rclcpp_action::create_client<custom_msg::action::Solve>(
                 this,
-                "actuator_dock"
+                "maze_solve"
             );
 
             // Dock Actuator Client
@@ -34,7 +34,7 @@ class Controller : public rclcpp::Node {
                 "actuator_dock"
             );
 
-            // Dock Actuator Client
+            // Movement Actuator Client
             movementClient = rclcpp_action::create_client<custom_msg::action::ActuatorMove>(
                 this,
                 "actuator_movement"
@@ -259,6 +259,8 @@ class Controller : public rclcpp::Node {
 
             // Creazione messaggio goal
             custom_msg::action::Solve::Goal goal_msg;
+            goal_msg.algorithm = algorithm;
+            
             goal_msg.start_position.clear();
             goal_msg.start_position.push_back(start_position[0]);
             goal_msg.start_position.push_back(start_position[1]);

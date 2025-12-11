@@ -1,7 +1,7 @@
 import py_trees
 from py_trees.behaviour import Behaviour
 from py_trees.common import Status
-from helpers import *
+from maze_solver.helpers import *
 
 class ChooseUnvisitedPath(Behaviour):
     def __init__(self, name="Choose Unvisited Path"):
@@ -22,6 +22,7 @@ class ChooseUnvisitedPath(Behaviour):
         self.BB.register_key(key="algorithm_mode", access=py_trees.common.Access.READ)
         self.BB.register_key(key="pledge_counter", access=py_trees.common.Access.WRITE)
         self.BB.register_key(key="heading_global", access=py_trees.common.Access.WRITE)
+        self.BB.register_key(key="maze_walls", access=py_trees.common.Access.WRITE)
 
     def update(self):
         current_pos = self.BB.get("current_position")
@@ -33,13 +34,14 @@ class ChooseUnvisitedPath(Behaviour):
         
         for h, cell in candidates:
             key = f"visits_{cell}"
+            self.BB.register_key(key=key, access=py_trees.common.Access.WRITE)
             if self.BB.exists(key):
                 visits = self.BB.get(key)
             else:
                 self.BB.set(key, 0)
                 visits = 0
                 
-            if visits < min_visits and is_free(cell):
+            if visits < min_visits and is_free(self, cell):
                 min_visits = visits
                 best_dir = h
         
