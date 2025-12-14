@@ -7,6 +7,5 @@ from .Feedback import Feedback
 from .IsBusy import IsBusy
 from .IsPaused import IsPaused
 from .Lidar import LidarMap
-from .MoveForward import MoveForward
 from .pledge import *
 from .tremaux import *

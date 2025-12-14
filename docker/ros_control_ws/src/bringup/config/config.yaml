@@ -1,0 +1,23 @@
+# ----------------------------
+# Configurazioni
+# ----------------------------
+
+# ====================
+#    Setting Data
+# ====================
+grid_size: 21
+start: [19, 18]
+initial_dir: 270
+goal: [1, 1]
+cell_length: 1
+
+# Movement data
+rotation_speed: 0.5
+
+movement_distance: 1.0
+movement_speed: 1.0
+
+# LIDAR DATA
+angle: 0.5760
+
+use_sim_time: true

@@ -468,7 +468,7 @@ private:
         }
 
         irobot_create_msgs::action::RotateAngle::Goal goal_msg;
-        goal_msg.angle = angle;
+        goal_msg.angle = angle + (angle >= 0 ? 0.10347 : -0.10347);
         goal_msg.max_rotation_speed = speed;
 
         auto options = rclcpp_action::Client<irobot_create_msgs::action::RotateAngle>::SendGoalOptions();
@@ -512,7 +512,9 @@ private:
 
             // Publish feedback if we have a valid value
             if (!std::isinf(last_drive_remaining)) {
-                float perc = (1.0f - (last_drive_remaining / std::abs(goal->distance))) * 100.0f;
+                const float req = std::abs(goal->distance);
+                const float rem = std::abs(last_drive_remaining.load());
+                float perc = (req <= 1e-6f) ? 100.0f : (1.0f - (rem / req)) * 100.0f;
                 feedback->percentage = std::clamp(perc, 0.0f, 100.0f);
                 goal_handle->publish_feedback(feedback);
             }
@@ -569,7 +571,9 @@ private:
 
             // Publish feedback if we have a valid value
             if (!std::isinf(last_angle_remaining)) {
-                float perc = (1.0f - (last_angle_remaining / std::abs(goal->distance))) * 100.0f;
+                const float req = std::abs(goal->distance);
+                const float rem = std::abs(last_angle_remaining.load());
+                float perc = (req <= 1e-6f) ? 100.0f : (1.0f - (rem / req)) * 100.0f;
                 feedback->percentage = std::clamp(perc, 0.0f, 100.0f);
                 goal_handle->publish_feedback(feedback);
             }

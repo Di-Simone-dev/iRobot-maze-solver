@@ -1,5 +1,8 @@
 import py_trees
 from maze_solver.helpers import *
+import math
+
+from custom_msg.action import ActuatorMove
 
 #STEP 2 DEL PLEDGE
 class FollowWall(py_trees.behaviour.Behaviour):
@@ -22,17 +25,25 @@ class FollowWall(py_trees.behaviour.Behaviour):
         self.BB.register_key(key="algorithm_mode", access=py_trees.common.Access.READ)
         self.BB.register_key(key="pledge_counter", access=py_trees.common.Access.WRITE)
         self.BB.register_key(key="heading_global", access=py_trees.common.Access.WRITE)
+        self.BB.register_key(key="actuator_movement_action_client", access=py_trees.common.Access.READ)
+        self.BB.register_key(key="map", access=py_trees.common.Access.WRITE)
+        self.BB.register_key(key="busy", access=py_trees.common.Access.WRITE)
+        self.BB.register_key(key="logger", access=py_trees.common.Access.WRITE)
+
+        self.BB.register_key(key="rotation_speed", access=py_trees.common.Access.READ)
+        self.BB.register_key(key="grid_size", access=py_trees.common.Access.READ)
 
     def update(self):
         current_pos = self.BB.get("current_position")
         heading = self.BB.get("heading")
         counter = self.BB.get("pledge_counter")
         last_action = self.BB.get("last_action")
+        grid_size = self.BB.get("grid_size")
         
         forward = forward_cell(current_pos, heading)
         
         # Check success condition: aligned with global heading and path is free
-        if counter == 0 and heading == self.BB.get("heading_global") and is_free(forward):
+        if counter == 0 and heading == self.BB.get("heading_global") and is_free(self, forward, grid_size):
             return py_trees.common.Status.SUCCESS
         
         # Get all adjacent cells
@@ -42,24 +53,40 @@ class FollowWall(py_trees.behaviour.Behaviour):
         backleft = backleft_cell(current_pos, heading)
         backright = backright_cell(current_pos, heading)
         
-        # Debug prints for decision points
-        if "Turn" not in last_action and is_free(back):
-            free_dirs = [d for d, cell in [("left", left), ("right", right), ("forward", forward)] if is_free(cell)]
-            #if len(free_dirs) >= 2:
-            #    print(f"Choice between {' and '.join(free_dirs)} with pledge counter {counter}")
-        
         # Determine turn priority based on pledge counter
         prioritize_left = counter > 0
         
         # Try movements in priority order
         new_heading, action = self._choose_direction(
             heading, forward, left, right, back, backleft, backright,
-            last_action, prioritize_left
+            last_action, prioritize_left, grid_size
         )
         
         if action == "FAILURE":
             self.BB.set("last_action", "Wall ended → no free path")
             return py_trees.common.Status.FAILURE
+        
+        # ===================
+        #      ROTATION
+        # ===================
+        self.BB.set("busy", True)
+        angle = self.BB.get("heading") - new_heading
+        if angle == 270:
+            angle = -90
+        elif angle == -270:
+            angle = 90
+        angle = angle * math.pi / 180
+        goal_msg = ActuatorMove.Goal()
+        goal_msg.type = "ANGLE"
+        goal_msg.distance = angle
+        goal_msg.max_speed = self.BB.get("rotation_speed")
+
+        actuator_movement_action_client = self.BB.get("actuator_movement_action_client")
+        send_future = actuator_movement_action_client.send_goal_async(
+            goal_msg,
+            feedback_callback=self.feedback_callback
+        )
+        send_future.add_done_callback(self.goal_response_callback)
         
         self.BB.set("heading", new_heading)
         self.BB.set("last_action", action)
@@ -67,28 +94,48 @@ class FollowWall(py_trees.behaviour.Behaviour):
         # Return SUCCESS if moving forward (no heading change), FAILURE if turning
         return py_trees.common.Status.SUCCESS if new_heading == heading else py_trees.common.Status.FAILURE
     
-    def _choose_direction(self, heading, forward, left, right, back, backleft, backright, last_action, prioritize_left):
+    def _choose_direction(self, heading, forward, left, right, back, backleft, backright, last_action, prioritize_left, grid_size):
         """Choose direction based on pledge counter priority."""
         
         if prioritize_left:
             # Priority: left → forward → right → back
-            if is_free(left) and not is_free(backleft) and "Turn Left" not in last_action:
+            if is_free(self, left, grid_size) and not is_free(self, backleft, grid_size) and "Turn Left" not in last_action:
                 return (heading - 90) % 360, "Turn Left (wall follow)"
-            if is_free(forward):
+            if is_free(self, forward, grid_size):
                 return heading, "Continue forward"
-            if is_free(right) and not is_free(backright):
+            if is_free(self, right, grid_size) and not is_free(self, backright, grid_size):
                 return (heading + 90) % 360, "Turn Right (wall follow)"
-            if is_free(back):
+            if is_free(self, back, grid_size):
                 return (heading - 180) % 360, "Turn Back (2 times left)"
         else:
             # Priority: right → forward → left → back
-            if is_free(right) and not is_free(backright) and "Turn Right" not in last_action:
+            if is_free(self, right, grid_size) and not is_free(self, backright, grid_size) and "Turn Right" not in last_action:
                 return (heading + 90) % 360, "Turn Right (wall follow)"
-            if is_free(forward):
+            if is_free(self, forward, grid_size):
                 return heading, "Continue forward"
-            if is_free(left) and not is_free(backleft):
+            if is_free(self, left, grid_size) and not is_free(self, backleft, grid_size):
                 return (heading - 90) % 360, "Turn Left (wall follow)"
-            if is_free(back):
+            if is_free(self, back, grid_size):
                 return (heading - 180) % 360, "Turn Back (2 times left)"
         
         return heading, "FAILURE"
+    
+    def goal_response_callback(self, future):
+        goal_handle = future.result()
+        if not goal_handle.accepted:
+            self.BB.get("logger").warn("Goal rejected")
+            self.BB.set("busy", False)
+            return
+        self.BB.get("logger").info("Rotation goal accepted")
+        result_future = goal_handle.get_result_async()
+        result_future.add_done_callback(self.end_movement_callback)
+
+    def feedback_callback(self, feedback_msg):
+        feedback = feedback_msg.feedback.percentage
+        self.BB.get("logger").info(f"Rotation percentage: {feedback}")
+
+    def end_movement_callback(self, future):
+        result = future.result().result
+        status = future.result().status
+        self.BB.get("logger").info(f"Final status: {status}, result: {result}")
+        self.BB.set("busy", False)

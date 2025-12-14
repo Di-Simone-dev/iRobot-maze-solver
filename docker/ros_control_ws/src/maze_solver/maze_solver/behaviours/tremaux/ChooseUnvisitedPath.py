@@ -18,36 +18,42 @@ class ChooseUnvisitedPath(Behaviour):
         self.BB.register_key(key="reached_exit", access=py_trees.common.Access.WRITE)
         self.BB.register_key(key="last_action", access=py_trees.common.Access.WRITE)
         self.BB.register_key(key="visited", access=py_trees.common.Access.WRITE)
+        self.BB.register_key(key="chosen_direction", access=py_trees.common.Access.WRITE)
         self.BB.register_key(key="allow_visit_fallback", access=py_trees.common.Access.WRITE)
         self.BB.register_key(key="algorithm_mode", access=py_trees.common.Access.READ)
         self.BB.register_key(key="pledge_counter", access=py_trees.common.Access.WRITE)
         self.BB.register_key(key="heading_global", access=py_trees.common.Access.WRITE)
         self.BB.register_key(key="maze_walls", access=py_trees.common.Access.WRITE)
+        self.BB.register_key(key="logger", access=py_trees.common.Access.READ)
+        self.BB.register_key(key="visits", access=py_trees.common.Access.WRITE)
+        self.BB.register_key(key="map", access=py_trees.common.Access.WRITE)
+
+        self.BB.register_key(key="grid_size", access=py_trees.common.Access.READ)
 
     def update(self):
         current_pos = self.BB.get("current_position")
         heading = self.BB.get("heading")
+        grid_size = self.BB.get("grid_size")
         candidates = neighbor_cells_with_headings(current_pos, heading)
         
         best_dir = None
         min_visits = float('inf')
+        d = self.BB.get("visits")
         
         for h, cell in candidates:
-            key = f"visits_{cell}"
-            self.BB.register_key(key=key, access=py_trees.common.Access.WRITE)
-            if self.BB.exists(key):
-                visits = self.BB.get(key)
-            else:
-                self.BB.set(key, 0)
-                visits = 0
+
+            visits = d.get(cell, 0)
+            d[cell] = visits
                 
-            if visits < min_visits and is_free(self, cell):
+            if visits < min_visits and is_free(self, cell, grid_size):
                 min_visits = visits
                 best_dir = h
         
+        self.BB.set("visits", d)
+        
         if best_dir is not None:
             self.BB.set("chosen_direction", best_dir)
-            #self.feedback_message = f"Scelto: {best_dir}"
+            self.BB.get("logger").info(f"Best Dir: {best_dir}")
             return Status.SUCCESS
         return Status.FAILURE
                 

@@ -11,6 +11,7 @@ class CheckHazards(py_trees.behaviour.Behaviour):
         
 
     def update(self):
+        self.BB.get("logger").info(f"Hazards: {self.BB.get("hazards")}")
         if len(self.BB.get("hazards")) > 0:
             self.BB.get("logger").info("System has hazards!")
             return py_trees.common.Status.SUCCESS

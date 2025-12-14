@@ -16,6 +16,7 @@ colcon build --symlink-install
 
 #COMANDO PER IL LANCIO
 ros2 launch irobot_create_gz_bringup create3_gz.launch.py gazebo:=ignition world:=custom x:=-9.0 y:=-9.0 yaw:=-1.5708
+ros2 launch irobot_create_gz_bringup create3_gz.launch.py gazebo:=ignition world:=custom x:=-9.0 y:=-8.35 yaw:=-1.5707963267948966
 
 
 

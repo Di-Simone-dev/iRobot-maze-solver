@@ -11,6 +11,36 @@
 class Controller : public rclcpp::Node {
     public:
         Controller(): Node("planner") {
+            //////////////////
+            //  PARAMETERS
+            //////////////////
+            // Dichiarazione parametri con default
+            this->declare_parameter<int>("grid_size", 21);
+            this->declare_parameter<std::vector<int64_t>>("start", {19, 18});
+            this->declare_parameter<int>("initial_dir", 270);
+            this->declare_parameter<std::vector<int64_t>>("goal", {1, 1});
+            this->declare_parameter<int>("cell_length", 1);
+            this->declare_parameter<double>("rotation_speed", 0.5);
+            this->declare_parameter<double>("movement_distance", 1.0);
+            this->declare_parameter<double>("movement_speed", 1.0);
+            this->declare_parameter<double>("angle", 0.5760);
+
+            std::vector<int64_t> tmp_start;
+            std::vector<int64_t> tmp_goal;
+
+            this->get_parameter("grid_size", grid_size);
+            this->get_parameter("start", tmp_start);
+            start[0] = static_cast<int>(tmp_start[0]);
+            start[1] = static_cast<int>(tmp_start[1]);
+            this->get_parameter("initial_dir", initial_dir);
+            this->get_parameter("goal", tmp_goal);
+            goal[0] = static_cast<int>(tmp_goal[0]);
+            goal[1] = static_cast<int>(tmp_goal[1]);
+            this->get_parameter("cell_length", cell_length);
+            this->get_parameter("rotation_speed", rotation_speed);
+            this->get_parameter("movement_distance", movement_distance);
+            this->get_parameter("movement_speed", movement_speed);
+            this->get_parameter("angle", angle);
             
             // Dock subscription
             rclcpp::QoS dock_qos = rclcpp::QoS(1).best_effort().durability_volatile();
@@ -59,6 +89,16 @@ class Controller : public rclcpp::Node {
             );
         }
     private:
+        int grid_size;
+        int start[2];
+        int initial_dir;
+        int goal[2];
+        int cell_length;
+        double rotation_speed;
+        double movement_distance;
+        double movement_speed;
+        double angle;
+
         // Status variables
         bool is_docked = true;
         std::string command = "";
@@ -383,17 +423,15 @@ class Controller : public rclcpp::Node {
                 } else if(command == "MODE B") {
                     this->mode = 1;
                 } else if(command == "SOLVE") {
-                    int start_pos[2] = {0, 0};
-                    int end_pos[2] = {10, 10};
-                    send_maze_solve_goal(mode == 0 ? "PLEDGE" : "TREMAUX", start_pos, end_pos);
+                    send_maze_solve_goal(mode == 0 ? "PLEDGE" : "TREMAUX", this->start, this->goal);
                 } else if(command == "FORWARD") {
-                    send_actuator_movement_goal("DISTANCE", 1, 0.5);
+                    send_actuator_movement_goal("DISTANCE", this->movement_distance, this->movement_speed);
                 } else if(command == "BACKWARD") {
-                    send_actuator_movement_goal("DISTANCE", -1, 0.5);
+                    send_actuator_movement_goal("DISTANCE", -this->movement_distance, this->movement_speed);
                 } else if(command == "ROTATE LEFT") {
-                    send_actuator_movement_goal("ANGLE", -1.57, 1);
+                    send_actuator_movement_goal("ANGLE", 1.5707963267948966, this->rotation_speed);
                 } else if(command == "ROTATE RIGHT") {
-                    send_actuator_movement_goal("ANGLE", 1.57, 1);
+                    send_actuator_movement_goal("ANGLE", -1.5707963267948966, this->rotation_speed);
                 }else if(command == "START") {
                     send_actuator_stop(false);
                 } else if(command == "STOP") {

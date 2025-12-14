@@ -22,16 +22,20 @@ class MarkPath(Behaviour):
         self.BB.register_key(key="algorithm_mode", access=py_trees.common.Access.READ)
         self.BB.register_key(key="pledge_counter", access=py_trees.common.Access.WRITE)
         self.BB.register_key(key="heading_global", access=py_trees.common.Access.WRITE)
+        self.BB.register_key(key="logger", access=py_trees.common.Access.READ)
+        self.BB.register_key(key="visits", access=py_trees.common.Access.WRITE)
+        self.BB.register_key(key="map", access=py_trees.common.Access.WRITE)
 
     def update(self):
         current_pos = self.BB.get("current_position")
-        key = f"visits_{current_pos}"
-        if self.BB.exists(key):
-            visits = self.BB.get(key)
-        else:
-            visits = 0
-        self.BB.set(key, visits + 1)
+
+        d = self.BB.get("visits")
+        visits = d.get(tuple(current_pos), 0)
+        d[tuple(current_pos)] = visits + 1
+        self.BB.set("visits", d)
+
         #self.feedback_message = f"Posizione {current_pos} marcata: {visits + 1}"
+        self.BB.get("logger").info(f"Posizione: {current_pos} marked: {visits + 1}")
         return Status.SUCCESS
                 
         

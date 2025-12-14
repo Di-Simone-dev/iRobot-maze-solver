@@ -39,12 +39,13 @@ def backright_cell(current_position, heading):
     back = backward_cell(current_position, heading)
     return right_cell(back, heading)
 
-def in_bounds(cell):
+def in_bounds(cell, grid_size):
     r, c = cell
-    return 0 <= r < config.GRID_SIZE and 0 <= c < config.GRID_SIZE
+    return 0 <= r < grid_size and 0 <= c < grid_size
 
-def is_free(self, cell):
-    return in_bounds(cell) and (cell not in self.BB.get("maze_walls"))
+def is_free(self, cell, grid_size):
+    map = self.BB.get("map")
+    return in_bounds(cell, grid_size) and (map[cell] != "wall") and (map[cell] != "unmapped")
 
 def left_of(heading):    return (heading - 90) % 360
 def right_of(heading):   return (heading + 90) % 360

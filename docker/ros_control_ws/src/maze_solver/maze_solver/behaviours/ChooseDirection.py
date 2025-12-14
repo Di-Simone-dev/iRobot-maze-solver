@@ -12,16 +12,19 @@ class ChooseDirection(py_trees.behaviour.Behaviour):
         self.BB.register_key(key="visited", access=py_trees.common.Access.WRITE)
         self.BB.register_key(key="last_action", access=py_trees.common.Access.WRITE)
 
+        self.BB.register_key(key="grid_size", access=py_trees.common.Access.READ)
+
     def update(self):
         current_position = self.BB.get("current_position")
         heading = self.BB.get("heading")
         visited = self.BB.get("visited")
+        grid_size = self.BB.get("grid_size")
 
         candidates = neighbor_cells_with_headings(current_position, heading)
 
         # Try free & unvisited
         for h, cell in candidates:
-            if is_free(self, cell) and (cell not in visited):
+            if is_free(self, cell, grid_size) and (cell not in visited):
                 self.BB.set("heading", h)
                 self.BB.set("allow_visit_fallback", False)
                 self.B.set("last_action", f"Choose heading {h}° → unvisited {cell}")
@@ -29,7 +32,7 @@ class ChooseDirection(py_trees.behaviour.Behaviour):
 
         # Fallback: any free (visited allowed)
         for h, cell in candidates:
-            if is_free(self, cell):
+            if is_free(self, cell, grid_size):
                 self.BB.set("heading", h)
                 self.BB.set("allow_visit_fallback", True)  # permit moving into visited to avoid deadlock
                 self.BB.set("last_action", f"Choose heading {h}° → free {cell} (visited fallback)")

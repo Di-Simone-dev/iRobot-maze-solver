@@ -7,14 +7,26 @@
 import py_trees
 from py_trees.composites import Sequence, Selector
 from py_trees.blackboard import Blackboard
+import time
 
 from maze_solver.behaviours import *
-from maze_solver import config
 
 class BehaviouralTree:
-    def __init__(self, goal_handle, is_paused, is_kidnapped, hazards, ir_sensors, lidar_scan, actuator_movement_action_client, clock, logger):
+    def __init__(self,
+                 grid_size,
+                 initial_dir,
+                 cell_length,
+                 rotation_speed,
+                 movement_distance,
+                 movement_speed,
+                 angle,
+                 goal_handle,
+                 actuator_movement_action_client,
+                 clock,
+                 logger):
         # ADDED: la blackboard si dovrebbe poter gestire mezza localmente in ogni Behaviour, sta pure nell'esempio del prof e nella documentazione con le register_key, anche se così a funzionare funziona
         BB = py_trees.blackboard.Client(name="Behavioural")
+        self._BB = BB
         
         BB.register_key(key="current_position", access=py_trees.common.Access.WRITE)
         BB.register_key(key="goal_position", access=py_trees.common.Access.WRITE)
@@ -39,27 +51,43 @@ class BehaviouralTree:
         BB.register_key(key="goal_handle", access=py_trees.common.Access.WRITE)
         BB.register_key(key="clock", access=py_trees.common.Access.WRITE)
         BB.register_key(key="logger", access=py_trees.common.Access.WRITE)
-        
+        BB.register_key(key="maze_walls", access=py_trees.common.Access.WRITE)
+        BB.register_key(key="visits", access=py_trees.common.Access.WRITE)
+
+        BB.register_key(key="grid_size", access=py_trees.common.Access.WRITE)
+        BB.grid_size = grid_size
+        BB.register_key(key="movement_distance", access=py_trees.common.Access.WRITE)
+        BB.movement_distance = movement_distance
+        BB.register_key(key="movement_speed", access=py_trees.common.Access.WRITE)
+        BB.movement_speed = movement_speed
+        BB.register_key(key="rotation_speed", access=py_trees.common.Access.WRITE)
+        BB.rotation_speed = rotation_speed
+        BB.register_key(key="angle", access=py_trees.common.Access.WRITE)
+        BB.angle = angle
+        BB.register_key(key="cell_length", access=py_trees.common.Access.WRITE)
+        BB.cell_length = cell_length
+
         BB.current_position = goal_handle.request.start_position
         BB.goal_position = goal_handle.request.end_position
-        BB.paused = is_paused
-        BB.kidnapped = is_kidnapped
-        BB.hazards = hazards
-        BB.ir_sensors = ir_sensors
-        BB.lidar_scan = lidar_scan
-        #BB.set("maze_walls", set())            # blocked cells {(r,c)}
-        BB.heading = 90                  # 0=N, 90=E, 180=S, 270=W SET ORIENTAMENTO INIZIALE
+        BB.paused = False
+        BB.kidnapped = False
+        BB.hazards = []
+        BB.ir_sensors = []
+        BB.lidar_scan = []
+        BB.set("maze_walls", set())            # blocked cells {(r,c)}
+        BB.heading = initial_dir                  # 0=N, 90=E, 180=S, 270=W SET ORIENTAMENTO INIZIALE
         BB.reached_exit = False
         BB.last_action = "Idle"
         BB.visited = [goal_handle.request.start_position]            # visited cells set  (Visita dello start)
         BB.allow_visit_fallback = False  # allows moving into visited if no unvisited options exist
         BB.chosen_direction = None
+        BB.visits = {}
 
         #SCELTA ALGORITMO
         BB.algorithm_mode = goal_handle.request.algorithm  #algoritmo di default
         BB.pledge_counter = 0
         BB.heading_global = BB.get("heading") #la direzione che vuoi come riferimento, Pledge la richiede per il "tracking dei giri"
-        BB.map_size = 20
+        BB.map_size = grid_size
         BB.busy = False
 
         BB.actuator_movement_action_client = actuator_movement_action_client
@@ -67,12 +95,12 @@ class BehaviouralTree:
         BB.clock = clock
         BB.logger = logger
         
-        map = self.init_map(BB.get("map_size"))
+        map = self.init_map(BB.get("map_size"), goal_handle)
         BB.set("map", map)
         
         self.build_tree()
         
-    def init_map(bb, size):
+    def init_map(bb, size, goal_handle):
         map = {}
         for r in range(size):
             for c in range(size):
@@ -80,11 +108,11 @@ class BehaviouralTree:
                     map[(r, c)] = "wall"
                 else:
                     map[(r, c)] = "unmapped"
-        map[config.START] = "free"
+        map[tuple(goal_handle.request.start_position)] = "free"
         return map
     
     def PledgeSubTree(self, name="Pledge Algorithm"):
-        root = Sequence(name, memory = True)
+        root = Sequence(name, memory = False)
         update_deviation_counter = UpdateDeviationCounter("Update Counter")
         follow_wall = FollowWall("Follow Wall")
         move_forward = MoveForward("Move Forward")
@@ -155,5 +183,16 @@ class BehaviouralTree:
         #return root
         
     def loop(self):
-        while(True):
+        while(1):
+            if(self._BB.reached_exit):
+                return True
             self.tree.tick()
+            time.sleep(1)
+    
+    def blackboard_updater(self, paused, kidnapped, hazard, ir_sensors, lidar_scan):
+        self._BB.paused = paused
+        self._BB.kidnapped = kidnapped
+        self._BB.hazards = hazard
+        self._BB.ir_sensors = ir_sensors
+        self._BB.lidar_scan = lidar_scan
+            

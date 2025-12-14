@@ -2,6 +2,9 @@ import rclpy
 from rclpy import qos
 from rclpy.action import ActionServer, ActionClient, GoalResponse, CancelResponse
 from rclpy.node import Node
+from rclpy.executors import MultiThreadedExecutor
+import threading, time
+
 
 from irobot_create_msgs.msg import DockStatus, KidnapStatus, HazardDetectionVector, IrIntensityVector
 
@@ -17,6 +20,31 @@ class MazeSolver(Node):
 
     def __init__(self):
         super().__init__('maze_solver')
+
+        # ====================
+        #    PARAMETERS
+        # ====================
+        # Dichiarazione opzionale (serve per avere default se manca nel YAML)
+        self.declare_parameter('grid_size', 21)
+        self.declare_parameter('start', [19, 18])
+        self.declare_parameter('initial_dir', 270)
+        self.declare_parameter('goal', [1, 1])
+        self.declare_parameter('cell_lencth', 1)
+        self.declare_parameter('rotation_speed', 0.5)
+        self.declare_parameter('movement_distance', 1.0)
+        self.declare_parameter('movement_speed', 1.0)
+        self.declare_parameter('angle', 0.5760)
+
+        # Lettura effettiva (se nel YAML c’è un valore, sovrascrive il default)
+        self.grid_size = self.get_parameter('grid_size').value
+        self.start = self.get_parameter('start').value
+        self.initial_dir = self.get_parameter('initial_dir').value
+        self.goal = self.get_parameter('goal').value
+        self.cell_length = self.get_parameter('cell_lencth').value
+        self.rotation_speed = self.get_parameter('rotation_speed').value
+        self.movement_distance = self.get_parameter('movement_distance').value
+        self.movement_speed = self.get_parameter('movement_speed').value
+        self.angle = self.get_parameter('angle').value
 
         # ====================
         # States
@@ -63,7 +91,7 @@ class MazeSolver(Node):
 
         # LIDAR SCAN
         lidar_scan_qos = qos.QoSProfile(
-            depth = 10,
+            depth = 1,
             reliability = qos.QoSReliabilityPolicy.BEST_EFFORT,
             durability = qos.QoSDurabilityPolicy.VOLATILE
         )
@@ -243,23 +271,46 @@ class MazeSolver(Node):
         #    BEHAVIOUR
         # ====================
         
-        behav_tree = BehaviouralTree(goal_handle,
-                                     self._is_paused,
-                                     self._is_kidnapped,
-                                     self._hazard,
-                                     self._ir_sensors,
-                                     self._lidar_scan,
+        behav_tree = BehaviouralTree(self.grid_size,
+                                     self.initial_dir,
+                                     self.cell_length,
+                                     self.rotation_speed,
+                                     self.movement_distance,
+                                     self.movement_speed,
+                                     self.angle,
+                                     goal_handle,
                                      self._actuator_movement_action_client,
                                      self.get_clock(),
                                      self.get_logger())
         
-        behav_tree.loop()
+        # Updating Thread because this language has no pointers
+        def updater():
+            while not stop_event.is_set():
+                behav_tree.blackboard_updater(self._is_paused,
+                                            self._is_kidnapped,
+                                            self._hazard,
+                                            self._ir_sensors,
+                                            self._lidar_scan)
+                time.sleep(0.02)
+        
+        stop_event = threading.Event()
+        update_thread = threading.Thread(target=updater)
+        update_thread.start()
 
-        # Publishing goal status
-        goal_handle.succeed()
+        status = behav_tree.loop()
+
+        stop_event.set()
+        update_thread.join()
+
+        if(status):
+            # Publishing goal status
+            goal_handle.succeed()
+        else:
+            goal_handle.abort()
 
         # Result
         result = Solve.Result()
+        result.status = status
         return result
 
 
@@ -268,7 +319,9 @@ def main(args=None):
 
     maze_solver_action_server = MazeSolver()
 
-    rclpy.spin(maze_solver_action_server)
+    executor = MultiThreadedExecutor(num_threads=10)
+    executor.add_node(maze_solver_action_server)
+    executor.spin()
 
 
 if __name__ == '__main__':
