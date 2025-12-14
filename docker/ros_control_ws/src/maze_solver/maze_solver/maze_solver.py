@@ -9,7 +9,7 @@ import threading, time
 from irobot_create_msgs.msg import DockStatus, KidnapStatus, HazardDetectionVector, IrIntensityVector
 
 from custom_msg.action import Solve, ActuatorMove, ActuatorDock
-from custom_msg.srv import Stop
+from custom_msg.srv import Stop, Pause
 
 from sensor_msgs.msg import LaserScan
 
@@ -131,9 +131,11 @@ class MazeSolver(Node):
         )
         self._ir_intensity_subscription
 
+
         # ====================
-        # Service subscriptions
+        # Services
         # ====================
+
         self._actuator_e_stop_client = self.create_client(
             Stop,
             'actuator_power'
@@ -153,6 +155,15 @@ class MazeSolver(Node):
             self,
             ActuatorDock,
             'actuator_dock'
+        )
+
+        # ====================
+        # Service servers
+        # ====================
+        self._actuator_pause_client = self.create_service(
+            Pause,
+            'actuator_pause',
+            self.paused_callback
         )
 
 
@@ -208,6 +219,11 @@ class MazeSolver(Node):
     # ====================
     # Service Callbacks
     # ====================
+    def paused_callback(self, request, response):
+        self._is_paused = request.pause
+        response.status = True
+        return response
+        
 
     # ====================
     # Action Callbacks
@@ -280,6 +296,7 @@ class MazeSolver(Node):
                                      self.angle,
                                      goal_handle,
                                      self._actuator_movement_action_client,
+                                     self._actuator_e_stop_client,
                                      self.get_clock(),
                                      self.get_logger())
         

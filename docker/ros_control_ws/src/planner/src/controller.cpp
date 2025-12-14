@@ -5,6 +5,7 @@
 #include "custom_msg/action/solve.hpp"
 #include "custom_msg/msg/command.hpp"
 #include "custom_msg/srv/stop.hpp"
+#include "custom_msg/srv/pause.hpp"
 #include "rclcpp_action/rclcpp_action.hpp"
 
 
@@ -73,6 +74,9 @@ class Controller : public rclcpp::Node {
             // Stop Actuator Client
             StopClient = this->create_client<custom_msg::srv::Stop>("actuator_power");
 
+            // Stop Actuator Client
+            PauseClient = this->create_client<custom_msg::srv::Pause>("actuator_pause");
+
             // Command subscription
             rclcpp::QoS command_qos = rclcpp::QoS(5).reliable().durability_volatile();
             commandSubscription = this->create_subscription<custom_msg::msg::Command>(
@@ -124,6 +128,9 @@ class Controller : public rclcpp::Node {
 
         // Stop Actuator Client
         rclcpp::Client<custom_msg::srv::Stop>::SharedPtr StopClient;
+
+        // Pause Actuator Client
+        rclcpp::Client<custom_msg::srv::Pause>::SharedPtr PauseClient;
 
         // Command Subsciption
         rclcpp::Subscription<custom_msg::msg::Command>::SharedPtr commandSubscription;
@@ -403,6 +410,35 @@ class Controller : public rclcpp::Node {
             );
         }
 
+        // =======================
+        // Send Pause / Resume Command
+        // =======================
+        void send_actuator_pause(bool pause)
+        {
+            if (!PauseClient->wait_for_service(std::chrono::seconds(2))) {
+                RCLCPP_ERROR(this->get_logger(), "Pause service not available");
+                return;
+            }
+
+            auto request = std::make_shared<custom_msg::srv::Pause::Request>();
+            request->pause = pause;
+
+            auto future_result = PauseClient->async_send_request(request,
+                [this, pause](rclcpp::Client<custom_msg::srv::Pause>::SharedFuture future) {
+                    try {
+                        auto response = future.get();
+                        if (response->status) {
+                            RCLCPP_INFO(this->get_logger(), "Actuator %s successfully", pause ? "paused" : "resumed");
+                        } else {
+                            RCLCPP_WARN(this->get_logger(), "Actuator %s failed", pause ? "pause" : "resume");
+                        }
+                    } catch (const std::exception &e) {
+                        RCLCPP_ERROR(this->get_logger(), "Failed to call pause service: %s", e.what());
+                    }
+                }
+            );
+        }
+
         // Main Loop
         void main_loop() {
             if(command != "") {
@@ -432,10 +468,14 @@ class Controller : public rclcpp::Node {
                     send_actuator_movement_goal("ANGLE", 1.5707963267948966, this->rotation_speed);
                 } else if(command == "ROTATE RIGHT") {
                     send_actuator_movement_goal("ANGLE", -1.5707963267948966, this->rotation_speed);
-                }else if(command == "START") {
+                } else if(command == "START") {
                     send_actuator_stop(false);
                 } else if(command == "STOP") {
                     send_actuator_stop(true);
+                } else if(command == "PAUSE") {
+                    send_actuator_pause(true);
+                } else if(command == "RESUME") {
+                    send_actuator_pause(false);
                 } else {
                     RCLCPP_ERROR(this->get_logger(), "Command unrecognized!");
                 }

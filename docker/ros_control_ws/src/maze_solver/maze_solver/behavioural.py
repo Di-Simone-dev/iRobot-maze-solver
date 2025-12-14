@@ -22,6 +22,7 @@ class BehaviouralTree:
                  angle,
                  goal_handle,
                  actuator_movement_action_client,
+                 actuator_stop_client,
                  clock,
                  logger):
         # ADDED: la blackboard si dovrebbe poter gestire mezza localmente in ogni Behaviour, sta pure nell'esempio del prof e nella documentazione con le register_key, anche se così a funzionare funziona
@@ -48,6 +49,7 @@ class BehaviouralTree:
         BB.register_key(key="map_size", access=py_trees.common.Access.WRITE)
         BB.register_key(key="busy", access=py_trees.common.Access.WRITE)
         BB.register_key(key="actuator_movement_action_client", access=py_trees.common.Access.WRITE)
+        BB.register_key(key="actuator_stop_client", access=py_trees.common.Access.WRITE)
         BB.register_key(key="goal_handle", access=py_trees.common.Access.WRITE)
         BB.register_key(key="clock", access=py_trees.common.Access.WRITE)
         BB.register_key(key="logger", access=py_trees.common.Access.WRITE)
@@ -91,6 +93,7 @@ class BehaviouralTree:
         BB.busy = False
 
         BB.actuator_movement_action_client = actuator_movement_action_client
+        BB.actuator_stop_client = actuator_stop_client
         BB.goal_handle = goal_handle
         BB.clock = clock
         BB.logger = logger
