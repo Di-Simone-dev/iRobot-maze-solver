@@ -168,7 +168,6 @@ class BehaviouralTree:
         exec_sequence.add_children([lidar_node, choose_algorithm, feedback])
 
         self.tree = py_trees.trees.BehaviourTree(root)
-        #return root
         
     def loop(self):
         while(1):

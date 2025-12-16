@@ -2,8 +2,6 @@
 # Helpers
 # ----------------------------
 
-from maze_solver import config
-
 def left_cell(current_position, heading):
     return forward_cell(current_position, (heading - 90) % 360)
 
@@ -51,7 +49,7 @@ def back_of(heading):    return (heading + 180) % 360
 
 def neighbor_cells_with_headings(current_position, heading):
     return [
-        (heading, forward_cell(current_position, heading)),                # forward
+        (heading, forward_cell(current_position, heading)),
         (left_of(heading),  forward_cell(current_position, left_of(heading))),
         (right_of(heading), forward_cell(current_position, right_of(heading))),
         (back_of(heading),  forward_cell(current_position, back_of(heading))),
