@@ -25,9 +25,7 @@ class MazeSolver(Node):
         #    PARAMETERS
         # ====================
         # Dichiarazione opzionale (serve per avere default se manca nel YAML)
-        self.declare_parameter('grid_size', 21)
-        self.declare_parameter('start', [19, 18])
-        self.declare_parameter('initial_dir', 270)
+        self.declare_parameter('global_heading', 0)
         self.declare_parameter('goal', [1, 1])
         self.declare_parameter('cell_lencth', 1)
         self.declare_parameter('rotation_speed', 0.5)
@@ -36,9 +34,7 @@ class MazeSolver(Node):
         self.declare_parameter('angle', 0.5760)
 
         # Lettura effettiva (se nel YAML c’è un valore, sovrascrive il default)
-        self.grid_size = self.get_parameter('grid_size').value
-        self.start = self.get_parameter('start').value
-        self.initial_dir = self.get_parameter('initial_dir').value
+        self.global_heading = self.get_parameter('global_heading').value
         self.goal = self.get_parameter('goal').value
         self.cell_length = self.get_parameter('cell_lencth').value
         self.rotation_speed = self.get_parameter('rotation_speed').value
@@ -232,14 +228,11 @@ class MazeSolver(Node):
     # Decide if accept or refuse the current goal
     def goal_solve_callback(self, goal_request):
         if (goal_request.algorithm in ("PLEDGE", "TREMAUX") and
-            len(goal_request.start_position) == 2 and
-            min(goal_request.start_position) >= 0 and
             len(goal_request.end_position) == 2 and
             min(goal_request.end_position) >= 0):
             
             return GoalResponse.ACCEPT
         
-        self.get_logger().info(f"Start: {goal_request.start_position}")
         self.get_logger().info(f"End: {goal_request.end_position}")
         self.get_logger().info(f"Algorithm: {goal_request.algorithm}")
 
@@ -287,8 +280,7 @@ class MazeSolver(Node):
         #    BEHAVIOUR
         # ====================
         
-        behav_tree = BehaviouralTree(self.grid_size,
-                                     self.initial_dir,
+        behav_tree = BehaviouralTree(self.global_heading,
                                      self.cell_length,
                                      self.rotation_speed,
                                      self.movement_distance,

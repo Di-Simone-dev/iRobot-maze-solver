@@ -31,19 +31,17 @@ class FollowWall(py_trees.behaviour.Behaviour):
         self.BB.register_key(key="logger", access=py_trees.common.Access.WRITE)
 
         self.BB.register_key(key="rotation_speed", access=py_trees.common.Access.READ)
-        self.BB.register_key(key="grid_size", access=py_trees.common.Access.READ)
 
     def update(self):
         current_pos = self.BB.get("current_position")
         heading = self.BB.get("heading")
         counter = self.BB.get("pledge_counter")
         last_action = self.BB.get("last_action")
-        grid_size = self.BB.get("grid_size")
         
         forward = forward_cell(current_pos, heading)
         
         # Check success condition: aligned with global heading and path is free
-        if counter == 0 and heading == self.BB.get("heading_global") and is_free(self, forward, grid_size):
+        if counter == 0 and heading == self.BB.get("heading_global") and is_free(self, forward):
             return py_trees.common.Status.SUCCESS
         
         # Get all adjacent cells
@@ -59,7 +57,7 @@ class FollowWall(py_trees.behaviour.Behaviour):
         # Try movements in priority order
         new_heading, action = self._choose_direction(
             heading, forward, left, right, back, backleft, backright,
-            last_action, prioritize_left, grid_size
+            last_action, prioritize_left
         )
         
         if action == "FAILURE":
@@ -96,28 +94,28 @@ class FollowWall(py_trees.behaviour.Behaviour):
         
         return py_trees.common.Status.FAILURE
     
-    def _choose_direction(self, heading, forward, left, right, back, backleft, backright, last_action, prioritize_left, grid_size):
+    def _choose_direction(self, heading, forward, left, right, back, backleft, backright, last_action, prioritize_left):
         """Choose direction based on pledge counter priority."""
         
         if prioritize_left:
             # Priority: left → forward → right → back
-            if is_free(self, left, grid_size) and not is_free(self, backleft, grid_size) and "Turn Left" not in last_action:
+            if is_free(self, left) and not is_free(self, backleft) and "Turn Left" not in last_action:
                 return (heading - 90) % 360, "Turn Left (wall follow)"
-            if is_free(self, forward, grid_size):
+            if is_free(self, forward):
                 return heading, "Continue forward"
-            if is_free(self, right, grid_size) and not is_free(self, backright, grid_size):
+            if is_free(self, right) and not is_free(self, backright):
                 return (heading + 90) % 360, "Turn Right (wall follow)"
-            if is_free(self, back, grid_size):
+            if is_free(self, back):
                 return (heading - 180) % 360, "Turn Back (2 times left)"
         else:
             # Priority: right → forward → left → back
-            if is_free(self, right, grid_size) and not is_free(self, backright, grid_size) and "Turn Right" not in last_action:
+            if is_free(self, right) and not is_free(self, backright) and "Turn Right" not in last_action:
                 return (heading + 90) % 360, "Turn Right (wall follow)"
-            if is_free(self, forward, grid_size):
+            if is_free(self, forward):
                 return heading, "Continue forward"
-            if is_free(self, left, grid_size) and not is_free(self, backleft, grid_size):
+            if is_free(self, left) and not is_free(self, backleft):
                 return (heading - 90) % 360, "Turn Left (wall follow)"
-            if is_free(self, back, grid_size):
+            if is_free(self, back):
                 return (heading - 180) % 360, "Turn Back (2 times left)"
         
         return heading, "FAILURE"

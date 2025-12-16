@@ -25,7 +25,9 @@ class CheckExit(py_trees.behaviour.Behaviour):
         self.BB.register_key(key="logger", access=py_trees.common.Access.READ)
 
     def update(self):
-        if self.BB.get("current_position") == self.BB.get("goal_position"):
+        self.BB.get("logger").info(f"CURRENT POS: {self.BB.get("current_position")}")
+        self.BB.get("logger").info(f"CURRENT POS: {self.BB.get("goal_position")}")
+        if self.BB.get("current_position") == tuple(self.BB.get("goal_position")):
             self.BB.set("reached_exit", True)
             self.BB.set("last_action", "Reached Exit!")
             self.BB.get("logger").info("Exit reached!")

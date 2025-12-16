@@ -28,12 +28,10 @@ class ChooseUnvisitedPath(Behaviour):
         self.BB.register_key(key="visits", access=py_trees.common.Access.WRITE)
         self.BB.register_key(key="map", access=py_trees.common.Access.WRITE)
 
-        self.BB.register_key(key="grid_size", access=py_trees.common.Access.READ)
 
     def update(self):
         current_pos = self.BB.get("current_position")
         heading = self.BB.get("heading")
-        grid_size = self.BB.get("grid_size")
         candidates = neighbor_cells_with_headings(current_pos, heading)
         
         best_dir = None
@@ -45,7 +43,7 @@ class ChooseUnvisitedPath(Behaviour):
             visits = d.get(cell, 0)
             d[cell] = visits
                 
-            if visits < min_visits and is_free(self, cell, grid_size):
+            if visits < min_visits and is_free(self, cell):
                 min_visits = visits
                 best_dir = h
         

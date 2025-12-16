@@ -10,9 +10,9 @@ def right_cell(current_position, heading):
 
 def forward_cell(current_position, heading):
     r, c = current_position
-    if heading == 0:     return (r - 1, c)
+    if heading == 0:     return (r + 1, c)
     if heading == 90:    return (r, c + 1)
-    if heading == 180:   return (r + 1, c)
+    if heading == 180:   return (r - 1, c)
     if heading == 270:   return (r, c - 1)
     return current_position
 
@@ -35,13 +35,13 @@ def backright_cell(current_position, heading):
     back = backward_cell(current_position, heading)
     return right_cell(back, heading)
 
-def in_bounds(cell, grid_size):
-    r, c = cell
-    return 0 <= r < grid_size and 0 <= c < grid_size
+def in_bounds(cell, map):
+    val = map.get(cell, False)
+    return False if val == False else True
 
-def is_free(self, cell, grid_size):
+def is_free(self, cell):
     map = self.BB.get("map")
-    return in_bounds(cell, grid_size) and (map[cell] != "wall") and (map[cell] != "unmapped")
+    return in_bounds(cell, map) and (map[cell] != "wall") and (map[cell] != "unmapped")
 
 def left_of(heading):    return (heading - 90) % 360
 def right_of(heading):   return (heading + 90) % 360

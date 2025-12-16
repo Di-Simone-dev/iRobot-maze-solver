@@ -19,7 +19,6 @@ class LidarMap(py_trees.behaviour.Behaviour):
 
         self.BB.register_key(key="angle", access=py_trees.common.Access.READ)
         self.BB.register_key(key="cell_length", access=py_trees.common.Access.READ)
-        self.BB.register_key(key="grid_size", access=py_trees.common.Access.READ)
         
 
     def update(self):
@@ -47,13 +46,13 @@ class LidarMap(py_trees.behaviour.Behaviour):
                         position -= 1
                     
                     if direction == 0:
-                        chosen = (self.BB.get("current_position")[0] - 1, self.BB.get("current_position")[1] + 1)
-                    elif direction == 90:
                         chosen = (self.BB.get("current_position")[0] + 1, self.BB.get("current_position")[1] + 1)
+                    elif direction == 90:
+                        chosen = (self.BB.get("current_position")[0] - 1, self.BB.get("current_position")[1] + 1)
                     elif direction == 180:
-                        chosen = (self.BB.get("current_position")[0] + 1, self.BB.get("current_position")[1] - 1)
-                    else:
                         chosen = (self.BB.get("current_position")[0] - 1, self.BB.get("current_position")[1] - 1)
+                    else:
+                        chosen = (self.BB.get("current_position")[0] + 1, self.BB.get("current_position")[1] - 1)
 
                     self.BB.get("logger").info(f"FIRST RAY DISTANCE: {self.BB.get("lidar_scan").ranges[position]}")
                     if(self.BB.get("lidar_scan").ranges[position] > first_ray_distance):
@@ -75,11 +74,11 @@ class LidarMap(py_trees.behaviour.Behaviour):
                         position -= 1
 
                     if direction == 0:
-                        chosen = (self.BB.get("current_position")[0] - 1, self.BB.get("current_position")[1])
+                        chosen = (self.BB.get("current_position")[0] + 1, self.BB.get("current_position")[1])
                     elif direction == 90:
                         chosen = (self.BB.get("current_position")[0], self.BB.get("current_position")[1] + 1)
                     elif direction == 180:
-                        chosen = (self.BB.get("current_position")[0] + 1, self.BB.get("current_position")[1])
+                        chosen = (self.BB.get("current_position")[0] - 1, self.BB.get("current_position")[1])
                     else:
                         chosen = (self.BB.get("current_position")[0], self.BB.get("current_position")[1] - 1)
                     
@@ -103,33 +102,46 @@ class LidarMap(py_trees.behaviour.Behaviour):
                         position -= 1
 
                     if direction == 0:
-                        chosen = (self.BB.get("current_position")[0] - 1, self.BB.get("current_position")[1] - 1)
-                    elif direction == 90:
-                        chosen = (self.BB.get("current_position")[0] - 1, self.BB.get("current_position")[1] + 1)
-                    elif direction == 180:
-                        chosen = (self.BB.get("current_position")[0] + 1, self.BB.get("current_position")[1] + 1)
-                    else:
                         chosen = (self.BB.get("current_position")[0] + 1, self.BB.get("current_position")[1] - 1)
+                    elif direction == 90:
+                        chosen = (self.BB.get("current_position")[0] + 1, self.BB.get("current_position")[1] + 1)
+                    elif direction == 180:
+                        chosen = (self.BB.get("current_position")[0] - 1, self.BB.get("current_position")[1] + 1)
+                    else:
+                        chosen = (self.BB.get("current_position")[0] - 1, self.BB.get("current_position")[1] - 1)
 
                     self.BB.get("logger").info(f"LAST RAY DISTANCE: {self.BB.get("lidar_scan").ranges[position]}")
                     if(self.BB.get("lidar_scan").ranges[position] > last_ray_distance):
                         map[chosen] = "free"
                     else:
                         map[chosen] = "wall"
-
-                    for x in range(0, self.BB.get("grid_size")):
-                        string = ""
-                        for y in range(0, self.BB.get("grid_size")):
-                            if map[(x, y)] == "wall":
-                                string += "W "
-                            elif map[(x, y)] == "unmapped":
-                                string += "U "
-                            else:
-                                string += "F "
-                        self.BB.get("logger").info(string)
+                    
+                    self.print_map()
                     
                     self.BB.get("logger").info("LIDAR Map ended!")
 
                     return py_trees.common.Status.SUCCESS
             
             sleep(0.200)
+
+    
+    def print_map(self):
+        map = self.BB.get("map")
+        if not map:
+            self.BB.get("logger").info("Empty map")
+            return
+        
+        righe = [coord[0] for coord in map.keys()]
+        colonne = [coord[1] for coord in map.keys()]
+        min_r, max_r = min(righe), max(righe)
+        min_c, max_c = min(colonne), max(colonne)
+        
+        for r in range(max_r, min_r - 1, -1):
+            row = []
+            for c in range(min_c, max_c + 1):
+                if (r, c) in map:
+                    val = map[(r, c)]
+                    row.append("#" if val == "wall" else "X" if val == "unmapped" else ".")
+                else:
+                    row.append("?")
+            self.BB.get("logger").info(" ".join(row))

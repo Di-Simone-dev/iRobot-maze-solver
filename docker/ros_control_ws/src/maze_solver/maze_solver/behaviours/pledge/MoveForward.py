@@ -27,7 +27,6 @@ class MoveForward(py_trees.behaviour.Behaviour):
 
         self.BB.register_key(key="movement_speed", access=py_trees.common.Access.READ)
         self.BB.register_key(key="movement_distance", access=py_trees.common.Access.READ)
-        self.BB.register_key(key="grid_size", access=py_trees.common.Access.READ)
         
 
     def update(self):
@@ -36,10 +35,9 @@ class MoveForward(py_trees.behaviour.Behaviour):
 
         current_position = self.BB.get("current_position")
         heading = self.BB.get("heading")
-        grid_size = self.BB.get("grid_size")
         target = forward_cell(current_position, heading)
 
-        if not is_free(self, target, grid_size):
+        if not is_free(self, target):
             self.BB.set("last_action", f"Blocked forward at {target}")
             return py_trees.common.Status.FAILURE
 

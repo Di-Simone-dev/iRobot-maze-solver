@@ -1,5 +1,4 @@
 string algorithm
-int32[] start_position
 int32[] end_position
 ---
 bool status

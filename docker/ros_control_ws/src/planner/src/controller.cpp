@@ -16,9 +16,7 @@ class Controller : public rclcpp::Node {
             //  PARAMETERS
             //////////////////
             // Dichiarazione parametri con default
-            this->declare_parameter<int>("grid_size", 21);
-            this->declare_parameter<std::vector<int64_t>>("start", {19, 18});
-            this->declare_parameter<int>("initial_dir", 270);
+            this->declare_parameter<int>("global_heading", 0);
             this->declare_parameter<std::vector<int64_t>>("goal", {1, 1});
             this->declare_parameter<int>("cell_length", 1);
             this->declare_parameter<double>("rotation_speed", 0.5);
@@ -26,14 +24,9 @@ class Controller : public rclcpp::Node {
             this->declare_parameter<double>("movement_speed", 1.0);
             this->declare_parameter<double>("angle", 0.5760);
 
-            std::vector<int64_t> tmp_start;
             std::vector<int64_t> tmp_goal;
 
-            this->get_parameter("grid_size", grid_size);
-            this->get_parameter("start", tmp_start);
-            start[0] = static_cast<int>(tmp_start[0]);
-            start[1] = static_cast<int>(tmp_start[1]);
-            this->get_parameter("initial_dir", initial_dir);
+            this->get_parameter("global_heading", global_heading);
             this->get_parameter("goal", tmp_goal);
             goal[0] = static_cast<int>(tmp_goal[0]);
             goal[1] = static_cast<int>(tmp_goal[1]);
@@ -93,9 +86,7 @@ class Controller : public rclcpp::Node {
             );
         }
     private:
-        int grid_size;
-        int start[2];
-        int initial_dir;
+        int global_heading;
         int goal[2];
         int cell_length;
         double rotation_speed;
@@ -288,7 +279,7 @@ class Controller : public rclcpp::Node {
         }
 
         // Maze solve callback
-        void send_maze_solve_goal(const std::string &algorithm, int* start_position, int* end_position)
+        void send_maze_solve_goal(const std::string &algorithm, int* end_position)
         {
             using namespace std::placeholders;
 
@@ -307,10 +298,6 @@ class Controller : public rclcpp::Node {
             // Creazione messaggio goal
             custom_msg::action::Solve::Goal goal_msg;
             goal_msg.algorithm = algorithm;
-            
-            goal_msg.start_position.clear();
-            goal_msg.start_position.push_back(start_position[0]);
-            goal_msg.start_position.push_back(start_position[1]);
 
             goal_msg.end_position.clear();
             goal_msg.end_position.push_back(end_position[0]);
@@ -459,7 +446,7 @@ class Controller : public rclcpp::Node {
                 } else if(command == "MODE B") {
                     this->mode = 1;
                 } else if(command == "SOLVE") {
-                    send_maze_solve_goal(mode == 0 ? "PLEDGE" : "TREMAUX", this->start, this->goal);
+                    send_maze_solve_goal(mode == 0 ? "PLEDGE" : "TREMAUX", this->goal);
                 } else if(command == "FORWARD") {
                     send_actuator_movement_goal("DISTANCE", this->movement_distance, this->movement_speed);
                 } else if(command == "BACKWARD") {

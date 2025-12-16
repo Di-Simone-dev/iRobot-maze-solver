@@ -5,10 +5,8 @@
 # ====================
 #    Setting Data
 # ====================
-grid_size: 21
-start: [19, 18]
-initial_dir: 270
-goal: [1, 1]
+global_heading: 0
+goal: [20, 20]
 cell_length: 1
 
 # Movement data
