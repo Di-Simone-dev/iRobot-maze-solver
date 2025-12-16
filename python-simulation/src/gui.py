@@ -111,6 +111,7 @@ class MazeGUI:
         BB.set("allow_visit_fallback", False)
         BB.set("pledge_counter", 0)
         generate_walls()
+        crea_mappa_incrementale(BB)# nuovo
         self.draw_maze()
         self.update_status()
         self.running = False
@@ -124,7 +125,9 @@ class MazeGUI:
         BB.set("visited", {START})
         BB.set("allow_visit_fallback", False)
         BB.set("pledge_counter", 0)
-        crea_mappa_quadrata()
+        #crea_mappa_quadrata()
+        crea_mappa_incrementale(BB)
+
         self.draw_maze()
         self.update_status()
         self.running = False

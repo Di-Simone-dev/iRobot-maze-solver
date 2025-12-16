@@ -96,8 +96,11 @@ if __name__ == "__main__":
     print(py_trees.display.unicode_tree(root, show_status=True))
     print()
 
-    crea_mappa_quadrata(BB, GRID_SIZE) 
-    stampa_mappa(BB, GRID_SIZE)
+    #crea_mappa_quadrata(BB, GRID_SIZE)  TEST
+    #stampa_mappa(BB, GRID_SIZE) 
+    crea_mappa_incrementale(BB)
+    stampa_mappa_incrementale(BB)
+    
     
 
     gui = MazeGUI(root)

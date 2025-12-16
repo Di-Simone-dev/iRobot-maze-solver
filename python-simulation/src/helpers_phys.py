@@ -41,7 +41,8 @@ def step_mapping(cell, heading):# eseguito dopo movimenti per aggiornare la mapp
 
     for nome, (dr, dc) in d.items():
         coord = (r + dr, c + dc)
-        if mappa[coord] == "unmapped":
+        #if mappa[coord] == "unmapped":  versione vecchia
+        if mappa.get(coord) is None or  mappa.get(coord) == "unmapped":
             print(f"La cella {coord} è {nome} ed è UNMAPPED")
             #SI PROCEDE CON IL MAPPING
             if(lidar(coord)):
@@ -51,9 +52,12 @@ def step_mapping(cell, heading):# eseguito dopo movimenti per aggiornare la mapp
             print(f"La cella {coord} è {nome} ora è mappata come {mappa[coord]}")
         else:
             print(f"La cella {coord} è {nome} ma è già mappata come {mappa[coord]}")
-    BB.set("mappa",mappa)
-    stampa_mappa(BB, GRID_SIZE)
 
+
+
+    BB.set("mappa",mappa)
+    #stampa_mappa(BB, GRID_SIZE)
+    stampa_mappa_incrementale(BB)
 
 
 
