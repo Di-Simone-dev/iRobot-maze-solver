@@ -1,9 +1,3 @@
-#L'inserimento di randomizzazione all'interno della generazione risulta ideale per:
-#Avere uno start non necessariamente al bordo del labirinto
-#Settare la stazione di docking allo spawn e far tornare il robot alla stazione per la ricarica
-#la generazione di maze (percorsi di dimensione 1) o di semplici mappe (implementazione attuale) con densità variabile
-#ma tenendo a mente di non tralasciare la raggiungibilità dell'obiettivo
-
 import py_trees
 from py_trees.composites import Sequence, Selector
 from py_trees.blackboard import Blackboard
