@@ -1,6 +1,5 @@
 import py_trees
 from py_trees.composites import Sequence, Selector
-from py_trees.blackboard import Blackboard
 import time
 
 from maze_solver.behaviours import *
