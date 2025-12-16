@@ -52,7 +52,8 @@ class MoveForwardTremaux(Behaviour):
         goal_msg.distance = self.BB.get("movement_distance")
         goal_msg.max_speed = self.BB.get("movement_speed")
         actuator_movement_action_client = self.BB.get("actuator_movement_action_client")
-        # invio goal con feedback callback
+
+        # Send goal with feedback callback
         send_future = actuator_movement_action_client.send_goal_async(
             goal_msg,
             feedback_callback=self.feedback_callback
@@ -60,7 +61,6 @@ class MoveForwardTremaux(Behaviour):
         send_future.add_done_callback(self.goal_response_callback)
 
         self.BB.get("logger").info(f"Move forward")
-
 
         self.BB.set("last_action", f"Move {chosen_dir}° → {target}")
         visited = self.BB.get("visited")

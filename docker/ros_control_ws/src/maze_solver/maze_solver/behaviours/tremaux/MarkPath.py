@@ -34,7 +34,6 @@ class MarkPath(Behaviour):
         d[tuple(current_pos)] = visits + 1
         self.BB.set("visits", d)
 
-        #self.feedback_message = f"Posizione {current_pos} marcata: {visits + 1}"
         self.BB.get("logger").info(f"Posizione: {current_pos} marked: {visits + 1}")
         return Status.SUCCESS
                 

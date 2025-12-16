@@ -34,28 +34,16 @@ class MoveForward(py_trees.behaviour.Behaviour):
         if self.BB.get("reached_exit"):
             return py_trees.common.Status.SUCCESS
 
-        #print("MOVIMENTO")
         current_position = self.BB.get("current_position")
         heading = self.BB.get("heading")
         grid_size = self.BB.get("grid_size")
         target = forward_cell(current_position, heading)
-
 
         if not is_free(self, target, grid_size):
             self.BB.set("last_action", f"Blocked forward at {target}")
             return py_trees.common.Status.FAILURE
 
         visited = self.BB.get("visited")
-        allow_visit_fallback = self.BB.get("allow_visit_fallback")
-
-
-        #TEST
-        self.BB.set("allow_visit_fallback", False)  # reset after movement
-        # If target visited and no fallback allowed, fail to re-choose direction
-        """ if (target in visited) and not allow_visit_fallback:
-            #print("visita riuscita")
-            BB.set("last_action", f"Forward visited {target} → reselect direction")
-            return py_trees.common.Status.FAILURE """
 
         # ====================
         #      MOVEMENT
@@ -66,7 +54,8 @@ class MoveForward(py_trees.behaviour.Behaviour):
         goal_msg.distance = self.BB.get("movement_distance")
         goal_msg.max_speed = self.BB.get("movement_speed")
         actuator_movement_action_client = self.BB.get("actuator_movement_action_client")
-        # invio goal con feedback callback
+
+        # Send goal with feedback callback
         send_future = actuator_movement_action_client.send_goal_async(
             goal_msg,
             feedback_callback=self.feedback_callback
@@ -74,11 +63,10 @@ class MoveForward(py_trees.behaviour.Behaviour):
         send_future.add_done_callback(self.goal_response_callback)
 
         # Move
-        self.BB.set("current_position", target)  #MOVIMENTO EFFETTIVO DEL ROBOT
+        self.BB.set("current_position", target)
         visited.append(target)
         self.BB.set("visited", visited)
         self.BB.set("last_action", f"Move to {target}")
-        self.BB.set("allow_visit_fallback", False)  # reset after movement
 
         if target == self.BB.get("goal_position"):
             self.BB.set("reached_exit", True)

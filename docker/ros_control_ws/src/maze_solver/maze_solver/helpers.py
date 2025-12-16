@@ -10,7 +10,6 @@ def left_cell(current_position, heading):
 def right_cell(current_position, heading):
     return forward_cell(current_position, (heading + 90) % 360)
 
-# VISUALIZZAZIONE CELLA IN BASE A POSIZIONE E ORIENTAMENTO
 def forward_cell(current_position, heading):
     r, c = current_position
     if heading == 0:     return (r - 1, c)
@@ -27,7 +26,6 @@ def rightforward_cell(current_position, heading):
     fwd = forward_cell(current_position, heading)
     return right_cell(fwd, heading)
 
-#POSTERIORI
 def backward_cell(current_position, heading):
     return forward_cell(current_position, (heading + 180) % 360)
 
@@ -58,7 +56,3 @@ def neighbor_cells_with_headings(current_position, heading):
         (right_of(heading), forward_cell(current_position, right_of(heading))),
         (back_of(heading),  forward_cell(current_position, back_of(heading))),
     ]
-
-if __name__ == "__main__":
-    # codice che deve essere eseguito solo se il file è lanciato direttamente
-    print("Questo è il file degli helper, non va eseguito")

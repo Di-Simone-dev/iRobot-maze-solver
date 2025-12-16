@@ -15,8 +15,7 @@ class UpdateDeviationCounter(py_trees.behaviour.Behaviour):
     def update(self):
         counter = self.BB.get("pledge_counter") if self.BB.exists("pledge_counter") else 0
         last_action = self.BB.get("last_action") if self.BB.exists("last_action") else ""
-        
-        #if(BB.get("pose") == START):
+
         # Map actions to counter changes
         action_deltas = {
             "Turn Left": -1,
@@ -34,6 +33,4 @@ class UpdateDeviationCounter(py_trees.behaviour.Behaviour):
         self.BB.set("pledge_counter", counter)
         self.BB.set("pledge_counter_log", f"Pledge counter: {counter}")
         
-        
-
         return py_trees.common.Status.SUCCESS

@@ -139,17 +139,12 @@ class BehaviouralTree:
     def build_tree(self):
         root = py_trees.composites.Sequence("Maze Solver", memory=False)
         
-        is_paused_sel = Selector("Is paused?", memory=False)
+        availability_selector = Selector("Avaiability selector", memory=False)
         is_paused = IsPaused()
-        
-        kidnap_sel = Selector("Kidnap selector", memory=False)
         check_kidnap = CheckKidnap()
-        
-        hazards_sel = Selector("Hazard selector", memory=False)
         check_hazards = CheckHazards()
-        
-        busy_sel = Selector("Busy selector", memory=False)
         is_busy = IsBusy()
+        check_exit = CheckExit()
         
         pledge_branch_sequence = Sequence("Pledge Branch", memory=False)
         algorithm_selector_P = AlgorithmSelector("Is Pledge", "PLEDGE")
@@ -164,24 +159,16 @@ class BehaviouralTree:
         pledge_branch_sequence.add_children([algorithm_selector_P, pledge_subtree])
         tremaux_branch_sequence.add_children([algorithm_selector_T, tremaux_subtree])
         
-        exit_or_explore_selector = Selector("Exit or Explore", memory=False)
-        
-        is_paused_sel.add_children([is_paused, kidnap_sel])
-        kidnap_sel.add_children([check_kidnap, hazards_sel])
-        hazards_sel.add_children([check_hazards, busy_sel])
-        busy_sel.add_children([is_busy, exit_or_explore_selector])
-
         exec_sequence = Sequence("Exec Sequence", memory=False)
-        check_exit = CheckExit()
-        exit_or_explore_selector.add_children([check_exit, exec_sequence])
 
+        availability_selector.add_children([is_paused, check_kidnap, check_hazards, is_busy, check_exit, exec_sequence])
 
+        root.add_children([availability_selector])
 
         lidar_node = LidarMap()
         feedback = Feedback()
         exec_sequence.add_children([lidar_node, choose_algorithm, feedback])
 
-        root.add_children([is_paused_sel])
         self.tree = py_trees.trees.BehaviourTree(root)
         #return root
         

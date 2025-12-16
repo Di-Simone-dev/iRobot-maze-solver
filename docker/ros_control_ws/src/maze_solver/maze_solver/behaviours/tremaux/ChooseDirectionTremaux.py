@@ -41,14 +41,16 @@ class ChooseDirectionTremaux(Behaviour):
         if chosen_dir is None:
             return Status.FAILURE
         
-        if chosen_dir == self.BB.get("heading"):
+        heading = self.BB.get("heading")
+        
+        if chosen_dir == heading:
             self.BB.get("logger").info("No rotation needed")
             return Status.SUCCESS
         
         self.BB.set("busy", True)
 
-        # ROTAZIONE
-        angle = self.BB.get("heading") - chosen_dir
+        # Rotation
+        angle = heading - chosen_dir
         if angle == 270:
             angle = -90
         elif angle == -270:
