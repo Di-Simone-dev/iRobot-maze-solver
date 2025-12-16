@@ -25,7 +25,7 @@ class BehaviouralTree:
                  actuator_stop_client,
                  clock,
                  logger):
-        # ADDED: la blackboard si dovrebbe poter gestire mezza localmente in ogni Behaviour, sta pure nell'esempio del prof e nella documentazione con le register_key, anche se così a funzionare funziona
+        
         BB = py_trees.blackboard.Client(name="Behavioural")
         self._BB = BB
         
@@ -76,19 +76,19 @@ class BehaviouralTree:
         BB.hazards = []
         BB.ir_sensors = []
         BB.lidar_scan = []
-        BB.set("maze_walls", set())            # blocked cells {(r,c)}
-        BB.heading = initial_dir                  # 0=N, 90=E, 180=S, 270=W SET ORIENTAMENTO INIZIALE
+        BB.set("maze_walls", set()) # blocked cells {(r,c)}
+        BB.heading = initial_dir # 0=N, 90=E, 180=S, 270=W
         BB.reached_exit = False
         BB.last_action = "Idle"
-        BB.visited = [goal_handle.request.start_position]            # visited cells set  (Visita dello start)
+        BB.visited = [goal_handle.request.start_position] # visited cells set
         BB.allow_visit_fallback = False  # allows moving into visited if no unvisited options exist
         BB.chosen_direction = None
         BB.visits = {}
 
-        #SCELTA ALGORITMO
+        # Algorithm choise
         BB.algorithm_mode = goal_handle.request.algorithm  #algoritmo di default
         BB.pledge_counter = 0
-        BB.heading_global = BB.get("heading") #la direzione che vuoi come riferimento, Pledge la richiede per il "tracking dei giri"
+        BB.heading_global = BB.get("heading") # keep tracks of the turns made
         BB.map_size = grid_size
         BB.busy = False
 
@@ -122,7 +122,6 @@ class BehaviouralTree:
         root.add_children([update_deviation_counter, follow_wall, move_forward])
         return root
 
-    # ADDED: è completo, ma una volta tra tutte quelle che ho provato si è impallato strano per un attimo tipo che ha rieseguito dei percorsi più volte senza senso, e inoltre nei vicoli ciechi da 2 caselle soltanto ogni tanto fa avanti e indietro tipo due volte invece che tornare direttamente indietro
     def TremauxSubTree(self, name="Tremaux Algorithm"):
         root = Sequence(name, memory=False)
 
@@ -130,9 +129,8 @@ class BehaviouralTree:
         mark_path = MarkPath()
         choose_direction = ChooseDirectionTremaux()
         move_forward = MoveForwardTremaux()
-        #backtrack_if_dead_end = BacktrackIfDeadEnd()
         
-        root.add_children([choose_unvisited_path, mark_path, choose_direction, move_forward])#, backtrack_if_dead_end])
+        root.add_children([choose_unvisited_path, mark_path, choose_direction, move_forward])
     
         return root
 
