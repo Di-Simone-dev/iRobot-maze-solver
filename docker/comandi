@@ -1,6 +1,7 @@
 xhost +local:docker
 
 docker exec -it create3_ws /bin/bash
+docker exec -it ros2_control_ws /bin/bash
 
 source /opt/ros/jazzy/setup.bash
 source home/ws/install/setup.bash 
@@ -16,7 +17,25 @@ colcon build --symlink-install
 
 #COMANDO PER IL LANCIO
 ros2 launch irobot_create_gz_bringup create3_gz.launch.py gazebo:=ignition world:=custom x:=-9.0 y:=-9.0 yaw:=-1.5708
-ros2 launch irobot_create_gz_bringup create3_gz.launch.py gazebo:=ignition world:=custom x:=-9.0 y:=-8.35 yaw:=-1.5707963267948966
+
+
+#sul term 1 create
+ros2 launch irobot_create_gz_bringup create3_gz.launch.py gazebo:=ignition world:=custom x:=-9.0 y:=-8.35 yaw:=-1.5707963267948966 
+#sul term 2 control
+ros2 launch bringup bringup.launch.py 
+#Sul term 3 contrl
+ros2 topic pub --once /command custom_msg/msg/Command "{command: 'UNDOCK'}"
+ros2 topic pub --once /command custom_msg/msg/Command "{command: 'MODE A'}"
+ros2 topic pub --once /command custom_msg/msg/Command "{command: 'MODE B'}"
+ros2 topic pub --once /command custom_msg/msg/Command "{command: 'SOLVE'}"
+
+
+
+
+
+
+
+
 
 
 
