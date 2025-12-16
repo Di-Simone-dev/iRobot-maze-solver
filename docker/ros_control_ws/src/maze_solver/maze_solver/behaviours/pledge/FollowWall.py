@@ -66,6 +66,9 @@ class FollowWall(py_trees.behaviour.Behaviour):
             self.BB.set("last_action", "Wall ended → no free path")
             return py_trees.common.Status.FAILURE
         
+        if heading == new_heading:
+            return py_trees.common.Status.SUCCESS
+        
         # ===================
         #      ROTATION
         # ===================
@@ -91,8 +94,7 @@ class FollowWall(py_trees.behaviour.Behaviour):
         self.BB.set("heading", new_heading)
         self.BB.set("last_action", action)
         
-        # Return SUCCESS if moving forward (no heading change), FAILURE if turning
-        return py_trees.common.Status.SUCCESS if new_heading == heading else py_trees.common.Status.FAILURE
+        return py_trees.common.Status.FAILURE
     
     def _choose_direction(self, heading, forward, left, right, back, backleft, backright, last_action, prioritize_left, grid_size):
         """Choose direction based on pledge counter priority."""
