@@ -2,7 +2,6 @@ from .AlgorithmSelector import AlgorithmSelector
 from .CheckExit import CheckExit
 from .CheckHazards import CheckHazards
 from .CheckKidnap import CheckKidnap
-from .ChooseDirection import ChooseDirection
 from .Feedback import Feedback
 from .IsBusy import IsBusy
 from .IsPaused import IsPaused
