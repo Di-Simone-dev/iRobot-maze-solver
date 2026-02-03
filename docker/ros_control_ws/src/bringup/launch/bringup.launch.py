@@ -42,4 +42,14 @@ def generate_launch_description():
         arguments=['--ros-args', '--log-level', 'INFO']
     )
 
+    voice_node = Node(
+        package='voice_node',
+        executable='voice_node',
+        name='maze_svoice_nodeolver',
+        output='screen',
+        emulate_tty=True,
+        parameters=[common_params],
+        arguments=['--ros-args', '--log-level', 'INFO']
+    )
+
     return LaunchDescription([planner, actuator, maze_solver])
