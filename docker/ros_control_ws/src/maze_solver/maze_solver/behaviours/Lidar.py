@@ -25,6 +25,9 @@ class LidarMap(py_trees.behaviour.Behaviour):
         # Check time
         # Bisogna scegliere tra Modello inverso quadratico distanza = sqrt(k / intensità)
         # Oppure Modello affine inverso distanza = a / (intensità - offset) + b
+        # se si mappa in funzione della dimensione della cella 
+        # Basta controllare che d<=(5*cell_length)/8 per i raggi diagonali
+        # Solo dopo una corretta calibrazione degli IR
         while(1):
             if(type(self.BB.get("lidar_scan")) == LaserScan):
                 if((self.BB.get("clock").now() - Time.from_msg(self.BB.get("lidar_scan").header.stamp)).nanoseconds < 750_000_000):
@@ -36,8 +39,8 @@ class LidarMap(py_trees.behaviour.Behaviour):
 
                     # First ray RIGHT
                     # bisogna leggere il VALUE dall'ir intesity di front_right (34 gradi dx)
-                    first_ray = 1.5708 - self.BB.get("angle") 
-                    first_ray_distance = min(((5 * self.BB.get("cell                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    _length")) / 8) / math.sin(self.BB.get("angle") + 0.01745), ((5 * self.BB.get("cell_length")) / 8) / math.sin(self.BB.get("angle") - 0.01745))
+                    first_ray = 1.5708 - self.BB.get("angle")
+                    first_ray_distance = min(((5 * self.BB.get("cell_length")) / 8) / math.sin(self.BB.get("angle") + 0.01745), ((5 * self.BB.get("cell_length")) / 8) / math.sin(self.BB.get("angle") - 0.01745))
                     self.BB.get("logger").info(f"FIRST RAY DISTANCE MIN: {first_ray_distance}")
                     angle = 0
                     position = 0
