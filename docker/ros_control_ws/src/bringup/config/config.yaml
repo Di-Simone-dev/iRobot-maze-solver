@@ -18,4 +18,7 @@ movement_speed: 1.0
 # LIDAR DATA
 angle: 0.5760
 
+# IR costant
+k: 1
+
 use_sim_time: true

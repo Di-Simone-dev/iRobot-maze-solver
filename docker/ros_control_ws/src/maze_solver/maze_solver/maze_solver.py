@@ -32,6 +32,7 @@ class MazeSolver(Node):
         self.declare_parameter('movement_distance', 1.0)
         self.declare_parameter('movement_speed', 1.0)
         self.declare_parameter('angle', 0.5760)
+        self.declare_parameter('k', 1)
 
         # Lettura effettiva (se nel YAML c’è un valore, sovrascrive il default)
         self.global_heading = self.get_parameter('global_heading').value
@@ -41,6 +42,7 @@ class MazeSolver(Node):
         self.movement_distance = self.get_parameter('movement_distance').value
         self.movement_speed = self.get_parameter('movement_speed').value
         self.angle = self.get_parameter('angle').value
+        self.k = self.get_parameter('k').value
 
         # ====================
         # States
@@ -286,6 +288,7 @@ class MazeSolver(Node):
                                      self.movement_distance,
                                      self.movement_speed,
                                      self.angle,
+                                     self.k,
                                      goal_handle,
                                      self._actuator_movement_action_client,
                                      self._actuator_e_stop_client,

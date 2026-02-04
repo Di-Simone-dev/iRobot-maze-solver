@@ -8,3 +8,4 @@ from .IsPaused import IsPaused
 from .Lidar import LidarMap
 from .pledge import *
 from .tremaux import *
+from .IR import IRMap

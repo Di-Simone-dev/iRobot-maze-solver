@@ -12,6 +12,7 @@ class BehaviouralTree:
                  movement_distance,
                  movement_speed,
                  angle,
+                 k,
                  goal_handle,
                  actuator_movement_action_client,
                  actuator_stop_client,
@@ -55,6 +56,8 @@ class BehaviouralTree:
         BB.rotation_speed = rotation_speed
         BB.register_key(key="angle", access=py_trees.common.Access.WRITE)
         BB.angle = angle
+        BB.register_key(key="k", access=py_trees.common.Access.WRITE)
+        BB.k = k
         BB.register_key(key="cell_length", access=py_trees.common.Access.WRITE)
         BB.cell_length = cell_length
 
