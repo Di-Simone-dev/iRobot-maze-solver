@@ -230,8 +230,7 @@ class MazeSolver(Node):
     # Decide if accept or refuse the current goal
     def goal_solve_callback(self, goal_request):
         if (goal_request.algorithm in ("PLEDGE", "TREMAUX") and
-            len(goal_request.end_position) == 2 and
-            min(goal_request.end_position) >= 0):
+            len(goal_request.end_position) == 2):
             
             return GoalResponse.ACCEPT
         
