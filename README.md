@@ -1,7 +1,8 @@
 # iRobot Maze Solver
 
 Progetto per la risoluzione di labirinti con iRobot Create3 e simulazione Python.
-Contiene componenti ROS2 (workspace Docker) e una simulazione/GUI Python indipendente.
+Contiene componenti ROS2 (workspace Docker) e una simulazione/GUI Python indipendente.  
+Questo repository contiene il workspace per la simulazione del comportamenteìo del robot mediante ROS e Gazebo Harmonic.
 
 ## Contenuto del repository
 - [docker/](docker/) — workspace e risorse Docker per iRobot/Create3 e pacchetti ROS (es. `create3_ws`, `ros_control_ws`, `ros_msg_ws`). Vedi documentazione: [docker/README.md](docker/README.md)
