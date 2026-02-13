@@ -20,13 +20,8 @@ Questa cartella contiene i workspace e relativi container per eseguire la simula
 
 2. Avviare i nodi mediante i launch file come indicato nei rispettivi readme.
    
-3. Lanciare da terminale i comandi tesiderati per comandare il robot:
-  ```bash
-  ros2 topic pub --once /command custom_msg/msg/Command "{command: 'UNDOCK'}"
-  ros2 topic pub --once /command custom_msg/msg/Command "{command: 'MODE A'}"
-  ros2 topic pub --once /command custom_msg/msg/Command "{command: 'MODE B'}"
-  ros2 topic pub --once /command custom_msg/msg/Command "{command: 'SOLVE'}"
-  ```
+3. Lanciare da uno dei due container i comandi desiderati presenti nel file commani.md.
+
 
 ## Logs e diagnosi
 - La cartella `log/` contiene snapshot dei build precedenti. Se il build fallisce, confronta con i `log/` per individuare regressioni.
